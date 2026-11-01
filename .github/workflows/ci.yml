@@ -2,10 +2,56 @@ name: CI
 
 on:
   pull_request:
+  # Caches written on master are visible to every PR; caches written in a PR stay within that PR
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect changed modules
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+      frontend: ${{ steps.frontend.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            workflow: &workflow
+              - '.github/workflows/ci.yml'
+            gradle: &gradle
+              - *workflow
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle.properties'
+              - 'gradlew'
+              - 'gradle/**'
+            backend:
+              - *gradle
+              - 'rfr-auth/**'
+              - 'rfr-api/**'
+            e2e:
+              - *gradle
+              - 'rfr-e2e/**'
+      - uses: dorny/paths-filter@v3
+        id: frontend
+        with:
+          filters: |
+            frontend:
+              - '.github/workflows/ci.yml'
+              - 'rfr-gql-client/**'
+
   backend:
     name: Build rfr-auth and rfr-api
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -13,11 +59,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
+      # Caches Gradle dependencies and wrapper; the cache is saved only on master
       - uses: gradle/actions/setup-gradle@v5
       - run: ./gradlew :rfr-auth:build :rfr-api:build
 
   e2e:
     name: Compile rfr-e2e
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -31,6 +80,8 @@ jobs:
 
   frontend:
     name: Lint and build rfr-gql-client
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,6 +91,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          # Caches the npm download cache keyed by package-lock.json
           cache: npm
           cache-dependency-path: rfr-gql-client/package-lock.json
       - run: npm ci
