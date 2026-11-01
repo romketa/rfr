@@ -1,32 +1,32 @@
 # RFR-API - GraphQL Backend
 
-## Описание
+## Description
 
-`rfr-api` - бэкенд проекта Rangiffler с GraphQL API, работающий как OAuth 2.0 Resource Server.
-Пользователи, страны и дружба реализованы на реальной БД; фотографии, лайки, лента и статистика пока
-отдаются mock-слоем из JSON-файлов и **ничего не сохраняют**.
+`rfr-api` is the backend of the Rangiffler project with a GraphQL API, running as an OAuth 2.0 Resource Server.
+Users, countries and friendships are backed by a real database; photos, likes, the feed and statistics are
+still served by a mock layer from JSON files and **persist nothing**.
 
-## Технологический стек
+## Technology stack
 
-- **Java 25**, Gradle 9.7.1 (wrapper в корне проекта)
+- **Java 25**, Gradle 9.7.1 (wrapper in the project root)
 - **Spring Boot 4.1.1** (Jackson 3)
-- **Spring for GraphQL** + **DGS Codegen** - Java-модель генерируется из схемы
-- **Spring Security 7** - OAuth 2.0 Resource Server (JWT), `@PreAuthorize` на контроллерах
-- **Spring Data JPA / Hibernate** - работа с БД
-- **Flyway** - миграции
-- **MySQL 8.4**, схема `rangiffler-api`
+- **Spring for GraphQL** + **DGS Codegen** - the Java model is generated from the schema
+- **Spring Security 7** - OAuth 2.0 Resource Server (JWT), `@PreAuthorize` on controllers
+- **Spring Data JPA / Hibernate** - database access
+- **Flyway** - migrations
+- **MySQL 8.4**, schema `rangiffler-api`
 
-## Структура модуля
+## Module structure
 
 ```
 rfr-api/
 ├── build.gradle                                   # Spring Boot + DGS codegen (generateJava)
 └── src/main/
     ├── java/io/student/rangiffler/
-    │   ├── RangifflerApiApplication.java          # Точка входа
+    │   ├── RangifflerApiApplication.java          # Entry point
     │   ├── config/
     │   │   ├── RangifflerApiConfiguration.java    # Security: resource server, audience, authorities, CORS
-    │   │   └── GraphQlExceptionResolver.java      # Исключения -> GraphQL errors (BAD_REQUEST / NOT_FOUND)
+    │   │   └── GraphQlExceptionResolver.java      # Exceptions -> GraphQL errors (BAD_REQUEST / NOT_FOUND)
     │   ├── controller/
     │   │   ├── CountryQueryController.java        # Query.countries
     │   │   ├── UserQueryController.java           # Query.user, Query.users, User.friends/...Invitations
@@ -35,46 +35,46 @@ rfr-api/
     │   │   └── PhotoMockMutationController.java   # Mutation.photo, Mutation.deletePhoto (mock)
     │   ├── data/
     │   │   ├── entity/                            # CountryEntity, UserEntity, FriendshipEntity, FriendshipStatus
-    │   │   ├── projection/UserWithStatus.java     # Пользователь + статус дружбы относительно текущего
+    │   │   ├── projection/UserWithStatus.java     # User + friendship status relative to the current user
     │   │   └── repository/                        # CountryRepository, UserRepository, FriendshipRepository
     │   ├── exception/                             # ResourceNotFoundException, FriendshipActionException
     │   ├── service/
     │   │   ├── api/                               # CountryService, UserService
     │   │   ├── impl/                              # CountryServiceImpl, UserServiceImpl
-    │   │   ├── mock/FeedMockData.java             # Чтение mock-ленты из JSON
-    │   │   └── cors/CorsCustomizer.java           # CORS для фронтенда
+    │   │   ├── mock/FeedMockData.java             # Reads the mock feed from JSON
+    │   │   └── cors/CorsCustomizer.java           # CORS for the frontend
     │   └── util/                                  # BytesAsString, StringAsBytes, GqlQueryPaginationAndSort
     └── resources/
         ├── application.yml
-        ├── graphql/query.graphqls                 # GraphQL схема (источник для codegen)
+        ├── graphql/query.graphqls                 # GraphQL schema (codegen source)
         ├── db/migration/rangiffler-api/V1__schema_init.sql
         └── mock/
-            ├── query_feed.json                    # Лента "Only my": 4 фото
-            └── query_feed_with_friends.json       # Лента "With friends": те же 4 + 3 фото друзей
+            ├── query_feed.json                    # "Only my" feed: 4 photos
+            └── query_feed_with_friends.json       # "With friends" feed: the same 4 + 3 friends' photos
 ```
 
-Сгенерированные классы (`io.student.rangiffler.model.*`, например `User`, `Photo`, `UserInput`) появляются в
-`build/generated/sources/dgs-codegen` после `./gradlew :rfr-api:generateJava` (выполняется автоматически при сборке).
-`UserConnection` и `PhotoConnection` маппятся на `org.springframework.data.domain.Page<...>`, скаляр `Date` - на `LocalDate`.
+Generated classes (`io.student.rangiffler.model.*`, for example `User`, `Photo`, `UserInput`) appear in
+`build/generated/sources/dgs-codegen` after `./gradlew :rfr-api:generateJava` (it runs automatically during the build).
+`UserConnection` and `PhotoConnection` are mapped to `org.springframework.data.domain.Page<...>`, the `Date` scalar to `LocalDate`.
 
-## Что реализовано, а что mock
+## What is implemented and what is mocked
 
-| Возможность | Реализация |
+| Feature | Implementation |
 |---|---|
-| Профиль пользователя (`Query.user`, `Mutation.user`) | БД. Профиль создается при первом `Query.user` со страной `ru` |
-| Справочник стран (`Query.countries`) | БД, заполняется миграцией (238 стран) |
-| Люди, поиск, пагинация (`Query.users`) | БД, сортировка по username |
-| Дружба (`Mutation.friendship`, `friends`, `incomeInvitations`, `outcomeInvitations`) | БД, одна строка на пару, проверка переходов |
-| Лента и статистика (`Query.feed`) | Mock: JSON-файлы, одинаковые для всех пользователей; фильтр по стране по захардкоженному соответствию |
-| Создание / редактирование / лайк фото (`Mutation.photo`) | Mock: возвращает корректный объект, но ничего не сохраняет |
-| Удаление фото (`Mutation.deletePhoto`) | Mock: всегда `true`, ничего не удаляет |
+| User profile (`Query.user`, `Mutation.user`) | Database. The profile is created on the first `Query.user` with country `ru` |
+| Country directory (`Query.countries`) | Database, populated by the migration (238 countries) |
+| People, search, pagination (`Query.users`) | Database, sorted by username |
+| Friendship (`Mutation.friendship`, `friends`, `incomeInvitations`, `outcomeInvitations`) | Database, one row per pair, transition checks |
+| Feed and statistics (`Query.feed`) | Mock: JSON files, identical for all users; the country filter uses a hardcoded mapping |
+| Create / edit / like a photo (`Mutation.photo`) | Mock: returns a valid object but persists nothing |
+| Delete a photo (`Mutation.deletePhoto`) | Mock: always `true`, deletes nothing |
 
-Таблицы `photo`, `like`, `photo_like`, `statistic` уже есть в миграции, но приложение их не использует -
-реализация фото, лайков и статистики - задача дипломного проекта.
+The tables `photo`, `like`, `photo_like`, `statistic` already exist in the migration, but the application does not use them -
+implementing photos, likes and statistics is a task of the graduation project.
 
 ## GraphQL API
 
-Схема: `src/main/resources/graphql/query.graphqls`. Endpoint: `POST http://localhost:8081/graphql`.
+Schema: `src/main/resources/graphql/query.graphqls`. Endpoint: `POST http://localhost:8081/graphql`.
 
 ### Queries
 
@@ -87,7 +87,7 @@ type Query {
 }
 ```
 
-Текущий пользователь и его связи:
+The current user and their connections:
 
 ```graphql
 query GetUser {
@@ -106,7 +106,7 @@ query GetUser {
 }
 ```
 
-Лента с фильтром по стране:
+Feed filtered by country:
 
 ```graphql
 query GetFeed($withFriends: Boolean!, $country: String) {
@@ -126,8 +126,8 @@ query GetFeed($withFriends: Boolean!, $country: String) {
 }
 ```
 
-`withFriends: false` читает `query_feed.json`, `true` - `query_feed_with_friends.json`. Список фото режется по `page/size`.
-`Feed.stat` берется из JSON и не зависит от фильтра; в JSON у страны в `stat` есть только `code`.
+`withFriends: false` reads `query_feed.json`, `true` reads `query_feed_with_friends.json`. The photo list is sliced by `page/size`.
+`Feed.stat` comes from the JSON and does not depend on the filter; in the JSON, the country in `stat` has only `code`.
 
 ### Mutations
 
@@ -140,7 +140,7 @@ type Mutation {
 }
 ```
 
-Обновление профиля (`null`/пропущенное поле - "не менять"):
+Profile update (a `null`/omitted field means "do not change"):
 
 ```graphql
 mutation UpdateUser($input: UserInput!) {
@@ -151,7 +151,7 @@ mutation UpdateUser($input: UserInput!) {
 { "input": { "firstname": "Ivan", "surname": "Petrov", "avatar": "data:image/png;base64,...", "location": { "code": "fr" } } }
 ```
 
-Дружба:
+Friendship:
 
 ```graphql
 mutation FriendshipAction($input: FriendshipInput!) {
@@ -159,17 +159,17 @@ mutation FriendshipAction($input: FriendshipInput!) {
 }
 ```
 ```json
-{ "input": { "user": "<API UUID другого пользователя>", "action": "ADD" } }
+{ "input": { "user": "<API UUID of the other user>", "action": "ADD" } }
 ```
 
-| Действие | Кто может | Результат |
+| Action | Who can do it | Result |
 |---|---|---|
-| `ADD` | Любой, если у пары еще нет записи | Строка `PENDING`, ответ `INVITATION_SENT` |
-| `ACCEPT` | Только адресат заявки | `ACCEPTED`, ответ `FRIEND` |
-| `REJECT` | Только адресат заявки | Строка удаляется, ответ `NOT_FRIEND` |
-| `DELETE` | Любая сторона, любой статус | Строка удаляется: удаление друга или отмена исходящей заявки |
+| `ADD` | Anyone, if the pair has no record yet | `PENDING` row, response `INVITATION_SENT` |
+| `ACCEPT` | Only the invitation addressee | `ACCEPTED`, response `FRIEND` |
+| `REJECT` | Only the invitation addressee | The row is deleted, response `NOT_FRIEND` |
+| `DELETE` | Either side, any status | The row is deleted: removing a friend or cancelling an outgoing invitation |
 
-Фото (mock): создание требует `src` и `country`; при `id` существующего mock-фото и `like` - добавляется лайк:
+Photo (mock): creation requires `src` and `country`; with the `id` of an existing mock photo and `like`, a like is added:
 
 ```graphql
 mutation CreatePhoto($input: PhotoInput!) {
@@ -180,59 +180,59 @@ mutation CreatePhoto($input: PhotoInput!) {
 { "input": { "src": "data:image/jpeg;base64,...", "description": "Paris", "country": { "code": "fr" } } }
 ```
 
-## Ошибки
+## Errors
 
-HTTP-статус GraphQL-ответа - 200 и при ошибке; проверяйте `errors`. `GraphQlExceptionResolver` переводит исключения:
+The HTTP status of a GraphQL response is 200 even on error; check `errors`. `GraphQlExceptionResolver` maps exceptions:
 
-| Исключение | `extensions.classification` | Пример `message` |
+| Exception | `extensions.classification` | Example `message` |
 |---|---|---|
 | `ResourceNotFoundException` | `NOT_FOUND` | `Country not found by code: xx`, `User not found by id: ...` |
 | `FriendshipActionException` | `BAD_REQUEST` | `Invitation already sent`, `No pending invitation from this user`, `Cannot perform friendship action on yourself` |
-| `IllegalArgumentException` | `BAD_REQUEST` | `Photo country is required`, некорректный UUID, `size=0` |
-| Нет токена / нет нужной authority | `UNAUTHORIZED` / `FORBIDDEN` | Spring for GraphQL |
-| Прочие | `INTERNAL_ERROR` | Без деталей |
+| `IllegalArgumentException` | `BAD_REQUEST` | `Photo country is required`, invalid UUID, `size=0` |
+| No token / missing required authority | `UNAUTHORIZED` / `FORBIDDEN` | Spring for GraphQL |
+| Other | `INTERNAL_ERROR` | No details |
 
 ## Security
 
-- `POST /graphql` пропускается фильтрами, доступ проверяется на контроллерах:
-  query-контроллеры - `@PreAuthorize("hasAuthority('read')")`, mutation-контроллеры - `hasAuthority('write')`.
-- JWT проверяется по JWKS `rfr-auth` (`spring.security.oauth2.resourceserver.jwt.issuer-uri`): подпись, `iss`, `exp`
-  и **audience** (`jwt.audiences: rangiffler-api`). Принимается только access token; `id_token` (aud = client_id) отклоняется с 401.
-- Claim `authorities` access token превращается в `GrantedAuthority` без префикса (`JwtAuthenticationConverter`
-  в `RangifflerApiConfiguration`).
-- Username текущего пользователя - claim `sub` (`@AuthenticationPrincipal Jwt`).
-- Невалидный или просроченный Bearer-токен - HTTP 401 от фильтра, до GraphQL.
-- GraphiQL (`/graphiql`) включен, но `GET` на него требует аутентификации - см. раздел Security config в корневом README.
+- `POST /graphql` passes the filters, access is checked on the controllers:
+  query controllers - `@PreAuthorize("hasAuthority('read')")`, mutation controllers - `hasAuthority('write')`.
+- The JWT is validated against the `rfr-auth` JWKS (`spring.security.oauth2.resourceserver.jwt.issuer-uri`): signature, `iss`, `exp`
+  and **audience** (`jwt.audiences: rangiffler-api`). Only the access token is accepted; `id_token` (aud = client_id) is rejected with 401.
+- The `authorities` claim of the access token is converted to `GrantedAuthority` without a prefix (`JwtAuthenticationConverter`
+  in `RangifflerApiConfiguration`).
+- The current user's username is the `sub` claim (`@AuthenticationPrincipal Jwt`).
+- An invalid or expired Bearer token results in HTTP 401 from the filter, before GraphQL.
+- GraphiQL (`/graphiql`) is enabled, but `GET` on it requires authentication - see the Security config section in the root README.
 
-## База данных
+## Database
 
-Схема `rangiffler-api` (создается автоматически, `createDatabaseIfNotExist=true`), миграция
+Schema `rangiffler-api` (created automatically, `createDatabaseIfNotExist=true`), migration
 `db/migration/rangiffler-api/V1__schema_init.sql`, `ddl-auto: none`.
 
-| Таблица | Назначение |
+| Table | Purpose |
 |---|---|
-| `user` | API-профиль: username (связь с `rfr-auth` только по username), имя, фамилия, аватар (LONGBLOB, data URL), страна |
-| `country` | Справочник стран, флаги - data URL в BLOB |
-| `friendship` | Одна строка на пару: `requester_id`, `addressee_id`, `status` (`PENDING`/`ACCEPTED`), `created_at`, `responded_at`, `version`; уникальный индекс неупорядоченной пары |
-| `photo`, `like`, `photo_like`, `statistic` | Заготовлены, приложением пока не используются |
+| `user` | API profile: username (linked to `rfr-auth` by username only), first name, surname, avatar (LONGBLOB, data URL), country |
+| `country` | Country directory, flags are data URLs in a BLOB |
+| `friendship` | One row per pair: `requester_id`, `addressee_id`, `status` (`PENDING`/`ACCEPTED`), `created_at`, `responded_at`, `version`; unique index on the unordered pair |
+| `photo`, `like`, `photo_like`, `statistic` | Prepared, not used by the application yet |
 
-UUID пользователя в `rangiffler-api` и `rangiffler-auth` независимы.
+User UUIDs in `rangiffler-api` and `rangiffler-auth` are independent.
 
-## Запуск
+## Running
 
-Требования: JDK 25 (Gradle toolchain), Docker для MySQL, запущенный `rfr-auth` (нужен для JWKS).
+Requirements: JDK 25 (Gradle toolchain), Docker for MySQL, a running `rfr-auth` (needed for JWKS).
 
 ```bash
-# из корня проекта: MySQL в Docker
-# внимание: localenv.sh останавливает и удаляет ВСЕ docker-контейнеры на машине
+# from the project root: MySQL in Docker
+# warning: localenv.sh stops and removes ALL docker containers on the machine
 bash localenv.sh
 
 cd rfr-api
 ../gradlew bootRun
-# или main class io.student.rangiffler.RangifflerApiApplication из IDE
+# or the main class io.student.rangiffler.RangifflerApiApplication from the IDE
 ```
 
-Проверка (access token можно взять в localStorage фронтенда после логина, ключ `access_token`):
+Check (the access token can be taken from the frontend's localStorage after login, key `access_token`):
 
 ```bash
 curl -X POST http://localhost:8081/graphql \
