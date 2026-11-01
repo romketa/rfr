@@ -5,13 +5,14 @@ Rangiffler E2E tests: JUnit 6.1.3, Playwright Java 1.63, Allure 3, Spring `JdbcC
 ## Running
 
 ```bash
+./gradlew :rfr-e2e:e2e                                   # UI tests only (package test.web)
 ./gradlew :rfr-e2e:test --tests '*RegistrationTest' --rerun-tasks
 ./gradlew :rfr-e2e:test --tests '*LoginTest' --rerun-tasks
 ./gradlew :rfr-e2e:allureReport                           # rfr-e2e/build/reports/allure-report/allureReport/index.html
 ./gradlew :rfr-e2e:allureServe                            # build the report and open it in a browser
 ```
 
-Playwright downloads Chromium itself on the first run.
+Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; the tests use Chromium only.
 
 Environment: MySQL `:3306`, `rfr-auth :9001`, `rfr-api :8081`, frontend `:3001` (see the root README).
 
