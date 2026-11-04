@@ -50,6 +50,7 @@ allure {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    outputs.upToDateWhen { false }
     // Forward -Drfr.* from the Gradle command line into the test JVM, where Config reads them
     systemProperties System.properties.findAll { it.key.toString().startsWith('rfr.') }
     jvmArgumentProviders.add({ ["-javaagent:${configurations.agent.singleFile}"] } as CommandLineArgumentProvider)
