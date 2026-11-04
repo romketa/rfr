@@ -4,7 +4,7 @@ Test configuration - `Config`: `-Drfr.<key>` or variable `RFR_<KEY>`, else value
 
 ## Creation Page Objects
 
-Use skill 'page-object' (`.claude/skills/page-object/SKILL.md`).
+Use skill 'rfr-page-objects' (`.claude/skills/rfr-page-objects/SKILL.md`).
 
 ## Project architecture
 
