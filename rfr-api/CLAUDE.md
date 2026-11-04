@@ -33,9 +33,38 @@ startup against a live DB.
 
 ## Data
 
-- Backed by the DB: users, countries, friendships. **Mocked** (`FeedMockQueryController`, `PhotoMockMutationController`, `FeedMockData`
-  + `resources/mock/*.json`): feed, photos, likes, stats — nothing is persisted. Tables `photo`, `like`, `photo_like`, `statistic`
-  already exist in the migration but are unused — implementing them is the main remaining task.
+### Real (persisted in `rangiffler-api`)
+
+`UserQueryController`, `UserMutationController`, `CountryQueryController`:
+
+- `Query.user` — the current user's profile; created on the first call with country `ru`.
+- `Query.users` — people list with search and friendship status.
+- `User.friends`, `User.incomeInvitations`, `User.outcomeInvitations` — paginated friends and invitations.
+- `Mutation.user` — saves first name, surname, avatar and country.
+- `Mutation.friendship` — send, accept, decline an invitation, remove a friend.
+- `Query.countries` — the country dictionary from the migration.
+
+### Mocked (nothing is persisted)
+
+`FeedMockQueryController`, `PhotoMockMutationController`, `FeedMockData` + `resources/mock/*.json`:
+
+- `Query.feed`, `Feed.photos` — photos from `query_feed.json` / `query_feed_with_friends.json`; country filter and pagination
+  work on top of these files.
+- `Feed.stat` — per-country stats computed from the same files.
+- `Photo.likes` — likes from the files.
+- `Mutation.photo` (create/edit) — validates country and `src`, returns the built photo and stores nothing.
+- `Mutation.photo` with `like` — returns the photo with likes +1; the JSON is re-read on every call, so the like is lost.
+- `Mutation.deletePhoto` — always returns `true` and deletes nothing.
+
+Tables `photo`, `like`, `photo_like`, `statistic` already exist in the migration but are unused. Until they are implemented,
+e2e tests can verify persistence only for profiles, people and friendships.
+
+**Never replace the mocks with a real implementation on your own.** Do not make the mock classes or `resources/mock/*.json`
+persist data, and do not start using the `photo`/`like`/`photo_like`/`statistic` tables, unless the user explicitly asks for
+it. If a task (for example, a failing e2e test on photos or likes) seems to need real data, stop and ask.
+
+### Implementation notes
+
 - Friendship: one `friendship` row per pair (`requester`/`addressee`, `PENDING`/`ACCEPTED`); unordered-pair uniqueness is enforced
   by `least/greatest` generated columns. `FriendshipEntity` is its own aggregate with `@Version` and transition rules inside the entity.
   Concurrent conflicts are caught via `saveAndFlush`/explicit `flush()` and turned into business errors.

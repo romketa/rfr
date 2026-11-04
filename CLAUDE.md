@@ -32,7 +32,8 @@ to `rfr-api` and `rfr-auth` only), MySQL 8.4, Flyway, Lombok.
 ## Commands
 
 ```bash
-bash localenv.sh                 # MySQL 8.4 via compose.yaml (root/secret, 3306); waits until healthy
+docker volume create mysql-volume   # once per machine: compose.yaml declares the volume as external
+docker compose up -d             # MySQL 8.4 (root/secret, 3306)
 bash ports.sh                    # kill processes on 9001/8081/3001
 
 ./gradlew :rfr-auth:bootRun      # start auth first: rfr-api fetches JWKS via issuer-uri

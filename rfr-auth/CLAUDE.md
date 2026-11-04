@@ -17,6 +17,6 @@ There are no unit tests yet.
   its redirect URI is fixed to `http://localhost:3001/authorized`.
 - `AccessTokenCustomizer` adds `aud: rangiffler-api` and an `authorities` claim (`read`, `write` from the `authority` table) to the **access token** only.
 - The RSA signing key is generated on every start and authorizations are in-memory → all tokens become invalid after a restart.
-- Access token TTL is set in `application.yaml` (`access-token-time-to-live`); some READMEs say "10 minutes" — trust the yaml.
+- Access token TTL is set in `application.yaml` (`access-token-time-to-live`, currently 30 minutes); the yaml is the source of truth.
 - Token revocation (`/oauth2/revoke`) for the public client works via `PublicClientRevocationAuthentication{Converter,Provider}`;
   `rfr-api` validates JWTs locally and is unaware of revocation.
