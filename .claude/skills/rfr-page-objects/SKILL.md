@@ -1,5 +1,5 @@
 ---
-name: page-object
+name: rfr-page-objects
 description: How to write and change Page Objects and page components for the Playwright Java e2e tests in rfr-e2e. Use this skill whenever a page object, page component, locator, screen, form or "PO" is created or edited, whenever a new e2e/UI test needs a page that does not exist yet, and whenever existing page classes are reviewed or refactored, even if the user only says "add a page", "write a test for the people page" or "fix the locator".
 ---
 
