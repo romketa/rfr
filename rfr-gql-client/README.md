@@ -83,7 +83,7 @@ on an `UNAUTHORIZED`/`FORBIDDEN` error redirects to `/`, and on other errors sho
 6. Logout (`MenuAppBar`): `POST /oauth2/revoke` for the access token -> clear the Apollo store ->
    `/connect/logout?id_token_hint=<id_token>&post_logout_redirect_uri=.../logout` -> `/logout` clears localStorage.
 
-The access token lives for 10 minutes, no refresh token is issued to the public client: after expiry the user logs in again
+The access token lives for 30 minutes (`access-token-time-to-live` in `rfr-auth`), no refresh token is issued to the public client: after expiry the user logs in again
 (without entering a password while the `rfr-auth` session is alive).
 
 ### localStorage

@@ -26,6 +26,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.front.url` | `http://localhost:3001` |
 | `rfr.auth.url` | `http://localhost:9001` |
 | `rfr.headless` | `true` |
+| `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
 | `rfr.auth.db.url` | `jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC` |
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
@@ -41,9 +42,9 @@ A single source set `src/test`, package `io.student.rangiffler`:
 |---|---|
 | `config` | `Config` — the single point for reading settings |
 | `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`), `extension` (`BrowserExtension`, `UserExtension`) |
-| `data` | test data and their owners: `TestUser`, `UserFixture`; `db` — `Databases`, `Jdbc` |
+| `data` | test data and their owners: `TestUser`, `UserFixture`, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
-| `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`); `component` — shared page parts (`Header`) |
+| `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
 | `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
 
 SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is loaded with `Jdbc.sql("auth/insert_user")`.
@@ -52,14 +53,17 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
 
 - `@WebTest` (on a class) → `BrowserExtension`: a fresh Playwright browser per test, a `Page` method parameter,
   a full-page screenshot attached to Allure when the test fails.
-- `@User` (on a method) → `UserExtension` → `UserFixture`: inserts a random user into `rangiffler-auth` before the test,
-  passes it as a `TestUser` method parameter, and afterwards deletes it from both schemas, including the profile
+- `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
+  inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.
+- A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
+  with `UserRecords.delete(username)`, which also runs when the scenario fails.
+- Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
 
 Rules: `jupiter` has no SQL or locators; `data` has no JUnit; `test` has no locators or SQL; `ThreadLocal` is not used for test state — state lives in the extension Store.
 
 ## Agent
 
-Page Objects are written by Claude Code using the `page-object` skill; the UI is explored via Playwright MCP (`.mcp.json`).
+Page Objects are written by Claude Code using the `rfr-page-objects` skill; the UI is explored via Playwright MCP (`.mcp.json`).
 
 A test is proven correct by running its Gradle task.

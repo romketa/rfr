@@ -71,7 +71,7 @@ and the user goes through authorization again; while the `rfr-auth` session is a
 
 | Token | Intended for | Content | Lifetime |
 |---|---|---|---|
-| **access token** (JWT) | `rfr-api` | `sub` = username, `aud: ["rangiffler-api"]`, `authorities: ["read","write"]`, `scope` | 10 minutes |
+| **access token** (JWT) | `rfr-api` | `sub` = username, `aud: ["rangiffler-api"]`, `authorities: ["read","write"]`, `scope` | 30 minutes |
 | **id_token** (JWT) | Frontend (`aud` = `client`) | `sub`, `sid` and other OIDC claims | 30 minutes (fixed in Spring Authorization Server) |
 
 - `aud` and `authorities` are added only to the access token, by `AccessTokenCustomizer`. Authorities are taken from the user's
@@ -189,8 +189,8 @@ Requirements: JDK 25 (Gradle toolchain), Docker for MySQL.
 
 ```bash
 # from the project root: MySQL in Docker
-# warning: localenv.sh stops and removes ALL docker containers on the machine
-bash localenv.sh
+docker volume create mysql-volume   # once per machine: compose.yaml declares the volume as external
+docker compose up -d --wait
 
 cd rfr-auth
 ../gradlew bootRun
@@ -207,6 +207,6 @@ curl http://localhost:9001/.well-known/openid-configuration
 
 - **Tokens stopped working after `rfr-auth` restarted.** The signing key is generated on start - log in again.
 - **`rfr-api` returns 401 for a seemingly valid token.** Check that the Bearer is the access token and not the id_token
-  (the id_token has `aud` = `client`), and that the token is not older than 10 minutes.
+  (the id_token has `aud` = `client`), and that the token is not older than 30 minutes (`access-token-time-to-live` in `application.yaml`).
 - **CORS errors.** The frontend must run on `rangiffler-front.base-uri` (`http://localhost:3001`); origins are set by `CorsCustomizer`.
 - **`GET /login` immediately redirects to the frontend.** This is expected without a saved OAuth request - start from `/oauth2/authorize`.

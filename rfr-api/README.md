@@ -224,8 +224,8 @@ Requirements: JDK 25 (Gradle toolchain), Docker for MySQL, a running `rfr-auth` 
 
 ```bash
 # from the project root: MySQL in Docker
-# warning: localenv.sh stops and removes ALL docker containers on the machine
-bash localenv.sh
+docker volume create mysql-volume   # once per machine: compose.yaml declares the volume as external
+docker compose up -d --wait
 
 cd rfr-api
 ../gradlew bootRun
