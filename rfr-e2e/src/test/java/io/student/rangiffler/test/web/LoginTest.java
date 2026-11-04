@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
 public class LoginTest {
 
   @Test
-  @User
-  void shouldAuthorizeExistingUser(TestUser user, Page page) {
+  void shouldAuthorizeExistingUser(@User TestUser user, Page page) {
     new LandingPage(page)
         .open()
         .clickLogin()

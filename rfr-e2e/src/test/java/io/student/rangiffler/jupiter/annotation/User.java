@@ -9,10 +9,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Creates a user in the auth database before the test and removes it afterwards.
- * The test receives it as a {@code TestUser} method parameter.
+ * Marks a {@code TestUser} parameter: a new user is created in the auth database for every annotated parameter
+ * before the test and removed from both schemas afterwards, so one test can get several independent users.
  */
-@Target(ElementType.METHOD)
+@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(UserExtension.class)
 public @interface User {

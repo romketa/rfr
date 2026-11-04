@@ -8,7 +8,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static io.student.rangiffler.data.db.Databases.API;
 import static io.student.rangiffler.data.db.Databases.AUTH;
 
 /**
@@ -43,25 +42,12 @@ public final class UserFixture implements AutoCloseable {
   /**
    * Closing before {@link #create()} is a no-op, so the fixture can be registered for closing first and created
    * afterwards: whatever fails in between still ends with this method and no orphaned user.
-   * Both schemas are cleaned even when the first delete fails: the api profile would otherwise survive every auth
-   * failure. Like try-with-resources, the first failure is thrown and the second is attached as suppressed.
    */
   @Override
   public void close() {
-    if (user == null) {
-      return;
+    if (user != null) {
+      UserRecords.delete(user.username());
     }
-    try {
-      deleteFromAuth();
-    } catch (RuntimeException authFailure) {
-      try {
-        deleteFromApi();
-      } catch (RuntimeException apiFailure) {
-        authFailure.addSuppressed(apiFailure);
-      }
-      throw authFailure;
-    }
-    deleteFromApi();
   }
 
   private static TestUser insertIntoAuth(String username, String password) {
@@ -72,31 +58,6 @@ public final class UserFixture implements AutoCloseable {
       client.sql(Jdbc.sql("auth/insert_authorities")).params(toBytes(id), toBytes(id)).update();
     });
     return new TestUser(id, username, password);
-  }
-
-  private void deleteFromAuth() {
-    Jdbc.inTransaction(AUTH, client -> {
-      client.sql(Jdbc.sql("auth/delete_authorities")).param(toBytes(user.id())).update();
-      client.sql(Jdbc.sql("auth/delete_user")).param(toBytes(user.id())).update();
-    });
-  }
-
-  /**
-   * The only link between the two schemas is the username, so the profile is looked up by it, not by the auth id.
-   * Everything that references the user goes before the user itself, in foreign-key order: the photo, like and
-   * statistic tables are empty while the API mocks them, but the fixture must keep working once they are persisted.
-   * A user who never logged in has no profile, so deleting nothing is not an error.
-   */
-  private void deleteFromApi() {
-    Jdbc.inTransaction(API, client ->
-        client.sql(Jdbc.sql("api/select_user_id")).param(user.username()).query(byte[].class).optional().ifPresent(id -> {
-          client.sql(Jdbc.sql("api/delete_friendships")).params(id, id).update();
-          client.sql(Jdbc.sql("api/delete_photo_likes")).params(id, id).update();
-          client.sql(Jdbc.sql("api/delete_likes")).param(id).update();
-          client.sql(Jdbc.sql("api/delete_photos")).param(id).update();
-          client.sql(Jdbc.sql("api/delete_statistics")).param(id).update();
-          client.sql(Jdbc.sql("api/delete_user")).param(id).update();
-        }));
   }
 
   /**

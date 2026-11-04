@@ -34,7 +34,7 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, 
   public void beforeEach(ExtensionContext context) {
     Playwright playwright = Playwright.create();
     Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(Config.headless()));
-    Page page = browser.newContext().newPage();
+    Page page = browser.newContext(new Browser.NewContextOptions().setLocale(Config.browserLocale())).newPage();
     page.setDefaultTimeout(Config.actionTimeoutMs());
     page.setDefaultNavigationTimeout(Config.actionTimeoutMs());
     // Both values are AutoCloseable, so the store closes them itself in reverse insertion order: page first, then playwright

@@ -17,8 +17,9 @@ public final class DataUtils {
   private DataUtils() {
   }
 
+  // The prefix lets a leftover check find every user the tests created with one LIKE 'rfr\_%' query
   public static String randomUsername() {
-    return "user_" + randomString(LOWER + "0123456789", 8);
+    return "rfr_" + randomString(LOWER + "0123456789", 8);
   }
 
   public static String randomPassword() {

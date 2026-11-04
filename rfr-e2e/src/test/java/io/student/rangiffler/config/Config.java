@@ -11,6 +11,8 @@ public final class Config {
   private static final String FRONT_URL = "http://localhost:3001";
   private static final String AUTH_URL = "http://localhost:9001";
   private static final boolean HEADLESS = true;
+  // rfr-auth localizes its messages by Accept-Language, so the locale is pinned instead of taken from the OS
+  private static final String BROWSER_LOCALE = "en-US";
   private static final double ACTION_TIMEOUT_MS = 10_000;
   private static final String AUTH_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC";
   private static final String API_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC";
@@ -30,6 +32,10 @@ public final class Config {
 
   public static boolean headless() {
     return Boolean.parseBoolean(resolve("headless", String.valueOf(HEADLESS)));
+  }
+
+  public static String browserLocale() {
+    return resolve("browser.locale", BROWSER_LOCALE);
   }
 
   public static double actionTimeoutMs() {
