@@ -24,8 +24,13 @@ case "$rel" in
       || report "Compilation of rfr-e2e failed after editing $rel" "$out"
     ;;
   rfr-gql-client/src/*.ts | rfr-gql-client/src/*.tsx)
-    out="$(cd "$root/rfr-gql-client" && npx --no-install tsc --noEmit --pretty false 2>&1)" \
+    client="$root/rfr-gql-client"
+    out="$(cd "$client" && npx --no-install tsc --noEmit --pretty false 2>&1)" \
       || report "Type check of rfr-gql-client failed after editing $rel" "$out"
+    # Same flags as `npm run lint` in CI, where a single warning fails the job
+    out="$(cd "$client" && npx --no-install eslint --report-unused-disable-directives --max-warnings 0 \
+      "${rel#rfr-gql-client/}" 2>&1)" \
+      || report "ESLint failed on $rel" "$out"
     ;;
 esac
 exit 0
