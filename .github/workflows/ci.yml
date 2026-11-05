@@ -97,3 +97,68 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  e2e-tests:
+    name: Run e2e tests against the full stand
+    needs: changes
+    # The tests touch every module, so any change to auth, api, e2e, the frontend, Gradle or this file runs them
+    if: >-
+      needs.changes.outputs.backend == 'true'
+      || needs.changes.outputs.e2e == 'true'
+      || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4.7
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+        # Same healthcheck as compose.yaml: the steps start only once MySQL answers on TCP
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -psecret --silent"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+          --health-start-period 30s
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rfr-gql-client/package-lock.json
+      # Started first so the backends compile and boot while the frontend and the browser are being installed
+      - name: Start rfr-auth and rfr-api
+        run: ./gradlew runAll > runAll.log 2>&1 &
+      - name: Start the frontend
+        working-directory: rfr-gql-client
+        run: |
+          npm ci
+          npm run dev > ../frontend.log 2>&1 &
+      - name: Install Chromium with its system libraries
+        run: ./gradlew :rfr-e2e:installPlaywrightWithDeps
+      - name: Wait for rfr-auth, rfr-api and the frontend
+        timeout-minutes: 5
+        # curl without -f succeeds on any HTTP answer (a 401 or a redirect too) and fails only while nothing listens
+        run: |
+          for port in 9001 8081 3001; do
+            until curl -s -o /dev/null "http://localhost:$port"; do sleep 2; done
+            echo "Port $port is up"
+          done
+      - name: Run e2e tests
+        run: ./gradlew :rfr-e2e:test
+      - name: Show the stand logs
+        if: failure()
+        run: tail -n 200 runAll.log frontend.log
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: rfr-e2e/build/allure-results

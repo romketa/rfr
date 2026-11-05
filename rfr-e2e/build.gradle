@@ -65,3 +65,11 @@ tasks.register('e2e', Test) {
         includeTestsMatching 'io.student.rangiffler.test.web.*'
     }
 }
+
+tasks.register('installPlaywrightWithDeps', JavaExec) {
+    group = 'verification'
+    description = 'Installs Chromium for Playwright together with the system libraries it needs (Ubuntu in CI)'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.microsoft.playwright.CLI'
+    args 'install', '--with-deps', 'chromium'
+}
