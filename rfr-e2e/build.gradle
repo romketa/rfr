@@ -10,6 +10,9 @@ def allureReportVersion = '3.17.0'
 def aspectJVersion = '1.9.25.1'
 def junitVersion = '6.1.3'
 def playwrightVersion = '1.63.0'
+def springJdbcVersion = '7.0.9'
+def springSecurityCryptoVersion = '7.1.1'
+def mysqlDriverVersion = '8.0.33'
 
 configurations {
     agent {
@@ -29,6 +32,10 @@ dependencies {
     testImplementation "com.microsoft.playwright:playwright:$playwrightVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
+
+    testImplementation "org.springframework:spring-jdbc:$springJdbcVersion"
+    testImplementation "org.springframework.security:spring-security-crypto:$springSecurityCryptoVersion"
+    testRuntimeOnly "com.mysql:mysql-connector-j:$mysqlDriverVersion"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     testRuntimeOnly "org.aspectj:aspectjrt:$aspectJVersion"
 }
@@ -43,5 +50,7 @@ allure {
 
 test {
     useJUnitPlatform()
+    // Forward -Drfr.* from the Gradle command line into the test JVM, where Config reads them
+    systemProperties System.properties.findAll { it.key.toString().startsWith('rfr.') }
     jvmArgumentProviders.add({ ["-javaagent:${configurations.agent.singleFile}"] } as CommandLineArgumentProvider)
 }
