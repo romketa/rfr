@@ -30,10 +30,25 @@
     "deny": [
       "Bash(git push)",
       "Bash(git push *)",
+      "Bash(git * push)",
+      "Bash(git * push *)",
       "Bash(rm)",
       "Bash(rm *)",
       "Bash(rmdir *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git * rm *)",
+      "Bash(git clean*)",
+      "Bash(git * clean*)",
+      "Bash(unlink *)",
+      "Bash(find * -delete*)",
+      "Bash(find * -exec rm*)",
+      "Bash(find * -execdir rm*)",
+      "Bash(shred *)",
+      "Bash(rsync * --delete*)",
+      "Bash(perl -e *)",
+      "Bash(sh -c *)",
+      "Bash(bash -c *)",
+      "Bash(zsh -c *)"
     ]
   },
   "enabledMcpjsonServers": [
