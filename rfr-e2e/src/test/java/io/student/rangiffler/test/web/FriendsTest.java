@@ -28,6 +28,45 @@ public class FriendsTest {
   }
 
   @Test
+  void shouldShowOutcomeInvitations(@User(outcomeInvitations = 2) TestUser user, Page page) {
+    openPeople(user, page)
+        .clickOutcomeInvitationsTab()
+        .checkPeople(usernames(user.outcomeInvitations()));
+  }
+
+  @Test
+  void shouldShowIncomeInvitationToInvitee(@User(outcomeInvitations = 1) TestUser user, Page page) {
+    openPeople(user.outcomeInvitations().getFirst(), page)
+        .clickIncomeInvitationsTab()
+        .checkPeople(user.username());
+  }
+
+  @Test
+  void shouldCancelOutcomeInvitation(@User(outcomeInvitations = 1) TestUser user, Page page) {
+    openPeople(user, page)
+        .clickOutcomeInvitationsTab()
+        .clickCancel(user.outcomeInvitations().getFirst().username())
+        .checkMessage("Invitation cancelled")
+        .reload()
+        .clickOutcomeInvitationsTab()
+        .checkPeople();
+  }
+
+  @Test
+  void shouldBecomeFriendsAfterInviteeAccepts(@User(outcomeInvitations = 1) TestUser user,
+      Page page) {
+    TestUser invitee = user.outcomeInvitations().getFirst();
+    PeoplePage inviteePeople = openPeople(invitee, page)
+        .clickIncomeInvitationsTab()
+        .clickAccept(user.username())
+        .checkMessage("Invitation accepted");
+    login(inviteePeople.header().clickLogout(), user)
+        .sidebar()
+        .clickPeople()
+        .checkPeople(invitee.username());
+  }
+
+  @Test
   void shouldShowOutcomeInvitationToInviter(@User(incomeInvitations = 1) TestUser user, Page page) {
     openPeople(user.incomeInvitations().getFirst(), page)
         .clickOutcomeInvitationsTab()

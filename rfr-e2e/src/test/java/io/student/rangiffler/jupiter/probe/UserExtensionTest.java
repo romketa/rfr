@@ -64,9 +64,28 @@ class UserExtensionTest {
         () -> assertEquals("true", published.get("profileExists")),
         () -> assertEquals(2, published.get("friends").split(",").length),
         () -> assertEquals(1, published.get("inviters").split(",").length),
+        () -> assertEquals(1, published.get("invitees").split(",").length),
         () -> assertEquals("true", published.get("friendsExist")),
         () -> assertEquals("true", published.get("invitationsExist")));
-    Stream.of(published.get("username"), published.get("friends"), published.get("inviters"))
+    Stream.of(published.get("username"), published.get("friends"), published.get("inviters"),
+            published.get("invitees"))
+        .flatMap(usernames -> Stream.of(usernames.split(",")))
+        .forEach(UserExtensionTest::assertDeleted);
+  }
+
+  @Test
+  void shouldCreateOutcomeInvitationsBeforeTestAndDeleteThemAfter() {
+    EngineExecutionResults results = run(OutcomeInvitationsScenario.class);
+
+    results.testEvents().assertStatistics(stats -> stats.succeeded(1));
+    Map<String, String> published = published(results);
+    assertAll(
+        () -> assertEquals(2, published.get("invitees").split(",").length),
+        () -> assertEquals("0", published.get("friendsCount")),
+        () -> assertEquals("0", published.get("invitersCount")),
+        () -> assertEquals("true", published.get("invitationsExist")),
+        () -> assertEquals("true", published.get("inviteesSeeInvitation")));
+    Stream.of(published.get("username"), published.get("invitees"))
         .flatMap(usernames -> Stream.of(usernames.split(",")))
         .forEach(UserExtensionTest::assertDeleted);
   }
@@ -169,10 +188,32 @@ class UserExtensionTest {
 
   @Nested
   @Tag("engine-kit")
+  class OutcomeInvitationsScenario {
+
+    @Test
+    void shouldPublishOutcomeInvitations(@User(outcomeInvitations = 2) TestUser user,
+        TestReporter reporter) {
+      Profile profile = Profile.find(user.username()).orElseThrow();
+      reporter.publishEntry(Map.of(
+          "username", user.username(),
+          "invitees", usernames(user.outcomeInvitations()),
+          "friendsCount", String.valueOf(user.friends().size()),
+          "invitersCount", String.valueOf(user.incomeInvitations().size()),
+          "invitationsExist",
+          String.valueOf(Friendships.of(profile, FriendshipStatus.PENDING).exists()),
+          "inviteesSeeInvitation", String.valueOf(user.outcomeInvitations().stream()
+              .map(invitee -> Profile.find(invitee.username()).orElseThrow())
+              .allMatch(invitee -> Friendships.of(invitee, FriendshipStatus.PENDING).exists()))));
+    }
+  }
+
+  @Nested
+  @Tag("engine-kit")
   class PreconditionsScenario {
 
     @Test
-    void shouldPublishPreconditions(@User(friends = 2, incomeInvitations = 1) TestUser user,
+    void shouldPublishPreconditions(
+        @User(friends = 2, incomeInvitations = 1, outcomeInvitations = 1) TestUser user,
         TestReporter reporter) {
       Profile profile = Profile.find(user.username()).orElseThrow();
       reporter.publishEntry(Map.of(
@@ -180,6 +221,7 @@ class UserExtensionTest {
           "profileExists", String.valueOf(profile.exists()),
           "friends", usernames(user.friends()),
           "inviters", usernames(user.incomeInvitations()),
+          "invitees", usernames(user.outcomeInvitations()),
           "friendsExist",
           String.valueOf(Friendships.of(profile, FriendshipStatus.ACCEPTED).exists()),
           "invitationsExist",
