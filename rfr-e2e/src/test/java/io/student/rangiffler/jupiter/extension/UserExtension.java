@@ -58,7 +58,7 @@ public class UserExtension implements BeforeEachCallback, ParameterResolver {
 
   private static UserRequest request(User user) {
     return new UserRequest(new TestProfile(user.firstname(), user.surname(), user.country()),
-        user.friends(), user.incomeInvitations());
+        user.friends(), user.incomeInvitations(), user.outcomeInvitations());
   }
 
   private static boolean isUserParameter(Parameter parameter, ExtensionContext context) {

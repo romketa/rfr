@@ -35,7 +35,7 @@ public final class SingleUserFixture implements UserFixture {
     String username = DataUtils.randomUsername();
     String password = DataUtils.randomPassword();
     account = AuthAccount.random(username, password).create();
-    user = new TestUser(account.id(), username, password, List.of(), List.of());
+    user = new TestUser(account.id(), username, password, List.of(), List.of(), List.of());
     if (request.needsProfile()) {
       TestProfile profile = request.profile();
       Profile.random(username, profile.firstname(), profile.surname(), profile.countryOrDefault())

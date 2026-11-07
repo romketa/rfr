@@ -8,13 +8,13 @@ import io.student.rangiffler.data.db.Profile;
 import java.util.ArrayList;
 import java.util.List;
 
-final class UserWithIncomeInvitation implements UserFixture {
+final class UserWithIncomeInvitationFixture implements UserFixture {
 
   private final UserFixture delegate;
   private final int count;
   private final List<UserFixture> inviters = new ArrayList<>();
 
-  UserWithIncomeInvitation(UserFixture delegate, int count) {
+  UserWithIncomeInvitationFixture(UserFixture delegate, int count) {
     this.delegate = delegate;
     this.count = count;
   }

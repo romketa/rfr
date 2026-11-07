@@ -8,13 +8,13 @@ import io.student.rangiffler.data.db.Profile;
 import java.util.ArrayList;
 import java.util.List;
 
-final class UserWithFriends implements UserFixture {
+final class UserWithOutcomeInvitationsFixture implements UserFixture {
 
   private final UserFixture delegate;
   private final int count;
-  private final List<UserFixture> friends = new ArrayList<>();
+  private final List<UserFixture> invitees = new ArrayList<>();
 
-  UserWithFriends(UserFixture delegate, int count) {
+  UserWithOutcomeInvitationsFixture(UserFixture delegate, int count) {
     this.delegate = delegate;
     this.count = count;
   }
@@ -24,25 +24,25 @@ final class UserWithFriends implements UserFixture {
     delegate.create();
     Profile me = Fixtures.profile(delegate);
     for (int i = 0; i < count; i++) {
-      Profile friend = Fixtures.profile(Fixtures.createRelated(friends));
-      Friendship.accepted(me, friend).create();
+      Profile invitee = Fixtures.profile(Fixtures.createRelated(invitees));
+      Friendship.pending(me, invitee).create();
     }
   }
 
   @Override
   public TestUser user() {
-    return delegate.user().withFriends(Fixtures.users(friends));
+    return delegate.user().withOutcomeInvitations(Fixtures.users(invitees));
   }
 
   @Override
   public void close() {
     TearDown tearDown = new TearDown();
-    if (!friends.isEmpty()) {
+    if (!invitees.isEmpty()) {
       tearDown.with(
-          () -> Friendships.of(Fixtures.profile(delegate), FriendshipStatus.ACCEPTED).delete());
+          () -> Friendships.of(Fixtures.profile(delegate), FriendshipStatus.PENDING).delete());
     }
     tearDown
-        .withEach(friends, UserFixture::close)
+        .withEach(invitees, UserFixture::close)
         .with(delegate::close)
         .run();
   }

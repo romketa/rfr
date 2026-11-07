@@ -99,6 +99,13 @@ public final class PeoplePage {
     return this;
   }
 
+  @Step("Click Cancel for {username}")
+  public PeoplePage clickCancel(String username) {
+    row(username).getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Cancel"))
+        .click();
+    return this;
+  }
+
   @Step("Check that message '{message}' is shown")
   public PeoplePage checkMessage(String message) {
     assertThat(snackbar).hasText(message);
