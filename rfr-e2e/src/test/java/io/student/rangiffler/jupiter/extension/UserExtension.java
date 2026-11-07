@@ -1,5 +1,6 @@
 package io.student.rangiffler.jupiter.extension;
 
+import io.student.rangiffler.data.TestProfile;
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.data.UserFixture;
 import io.student.rangiffler.data.UserRequest;
@@ -29,7 +30,7 @@ public class UserExtension implements BeforeEachCallback, ParameterResolver {
     Arrays.stream(context.getRequiredTestMethod().getParameters())
         .filter(parameter -> isUserParameter(parameter, context))
         .forEach(parameter -> {
-          UserFixture fixture = UserRequest.from(parameter.getAnnotation(User.class)).fixture();
+          UserFixture fixture = request(parameter.getAnnotation(User.class)).fixture();
           store.put(parameter, fixture);
           fixture.create();
         });
@@ -53,6 +54,11 @@ public class UserExtension implements BeforeEachCallback, ParameterResolver {
               + " is missing from the store");
     }
     return fixture.user();
+  }
+
+  private static UserRequest request(User user) {
+    return new UserRequest(new TestProfile(user.firstname(), user.surname(), user.country()),
+        user.friends(), user.incomeInvitations());
   }
 
   private static boolean isUserParameter(Parameter parameter, ExtensionContext context) {

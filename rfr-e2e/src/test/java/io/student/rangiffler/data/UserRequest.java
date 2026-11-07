@@ -1,7 +1,5 @@
 package io.student.rangiffler.data;
 
-import io.student.rangiffler.jupiter.annotation.User;
-
 public record UserRequest(TestProfile profile, int friends, int incomeInvitations) {
 
   public UserRequest {
@@ -10,11 +8,6 @@ public record UserRequest(TestProfile profile, int friends, int incomeInvitation
           "Friends and income invitations of a test user must not be negative, but got "
               + friends + " and " + incomeInvitations);
     }
-  }
-
-  public static UserRequest from(User user) {
-    return new UserRequest(new TestProfile(user.firstname(), user.surname(), user.country()),
-        user.friends(), user.incomeInvitations());
   }
 
   static UserRequest withDefaultProfile() {
