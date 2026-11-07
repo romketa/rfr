@@ -1,9 +1,20 @@
 package io.student.rangiffler.data;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * A user created in the auth database for one test. The password is kept in clear text so the test can sign in.
+ * A user created in the auth database for one test. The password is kept in clear text so the test
+ * can sign in.
  */
-public record TestUser(UUID id, String username, String password) {
+public record TestUser(UUID id, String username, String password, List<TestUser> friends,
+                       List<TestUser> incomeInvitations) {
+
+  public TestUser withFriends(List<TestUser> friends) {
+    return new TestUser(id, username, password, friends, incomeInvitations);
+  }
+
+  public TestUser withIncomeInvitations(List<TestUser> incomeInvitations) {
+    return new TestUser(id, username, password, friends, incomeInvitations);
+  }
 }
