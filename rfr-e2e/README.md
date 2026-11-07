@@ -42,7 +42,7 @@ A single source set `src/test`, package `io.student.rangiffler`:
 |---|---|
 | `config` | `Config` — the single point for reading settings |
 | `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`), `extension` (`BrowserExtension`, `UserExtension`) |
-| `data` | test data and their owners: `TestUser`, `UserFixture`, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` |
+| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorators `UserWithFriends`, `UserWithIncomeInvitation`, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
 | `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
