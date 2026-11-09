@@ -6,10 +6,9 @@ import io.student.rangiffler.data.db.Friendship;
 import io.student.rangiffler.data.db.FriendshipStatus;
 import io.student.rangiffler.data.db.Friendships;
 import io.student.rangiffler.data.db.Profile;
+import io.student.rangiffler.jupiter.annotation.ProbeTarget;
 import io.student.rangiffler.jupiter.annotation.User;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
@@ -170,8 +169,7 @@ class UserExtensionTest {
     return users.stream().map(TestUser::username).collect(Collectors.joining(","));
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class CreatedUserScenario {
 
     @Test
@@ -183,8 +181,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class TwoUsersScenario {
 
     @Test
@@ -194,8 +191,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class OutcomeInvitationScenario {
 
     @Test
@@ -211,8 +207,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class NegativeCountScenario {
 
     @Test
@@ -221,8 +216,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class PreconditionsScenario {
 
     @Test
@@ -243,8 +237,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class FailingScenario {
 
     @Test
@@ -254,8 +247,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class UnknownCountryScenario {
 
     @Test
@@ -264,8 +256,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class LifecycleParameterScenario {
 
     @BeforeEach
@@ -277,8 +268,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class WrongTypeScenario {
 
     @Test
@@ -286,8 +276,7 @@ class UserExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class NoAnnotationScenario {
 
     @Test

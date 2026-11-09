@@ -2,9 +2,8 @@ package io.student.rangiffler.jupiter.probe;
 
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.data.UsersQueue;
+import io.student.rangiffler.jupiter.annotation.ProbeTarget;
 import io.student.rangiffler.jupiter.annotation.StaticUser;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import org.junit.platform.engine.reporting.ReportEntry;
@@ -65,8 +64,7 @@ class UsersQueueExtensionTest {
         "available", String.valueOf(UsersQueue.available())));
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class FourTestsScenario {
 
     @Test
@@ -90,8 +88,7 @@ class UsersQueueExtensionTest {
     }
   }
 
-  @Nested
-  @Tag("engine-kit")
+  @ProbeTarget
   class FailingScenario {
 
     @Test
