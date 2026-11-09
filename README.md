@@ -37,7 +37,7 @@ rfr/
 │   └── Flyway миграции БД
 ├── rfr-gql-client/        # React + TypeScript Frontend (готов)
 └── rfr-e2e/               # E2E тесты: JUnit 6 + Playwright + Allure 3 (в работе)
-    ├── Page Objects и фикстура @User (создает и удаляет пользователя через JDBC)
+    ├── Page Objects и фикстуры @User (создает и удаляет пользователя через JDBC) и @StaticUser (пул заранее заведенных пользователей)
     └── UI-тесты: регистрация, логин, негативный логин, профиль
 ```
 
