@@ -17,12 +17,14 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import java.io.ByteArrayInputStream;
 
 /**
- * Opens a fresh browser per test so tests can run in parallel without sharing cookies or localStorage,
- * injects {@link Page} into test methods and attaches a screenshot to Allure when a test fails.
+ * Opens a fresh browser per test so tests can run in parallel without sharing cookies or
+ * localStorage, injects {@link Page} into test methods and attaches a screenshot to Allure when a
+ * test fails.
  */
 public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
-  private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(BrowserExtension.class);
+  private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(
+      BrowserExtension.class);
 
   static {
     // Page timeouts do not apply to PlaywrightAssertions, they have their own default of 5 seconds.
@@ -33,32 +35,50 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, 
   @Override
   public void beforeEach(ExtensionContext context) {
     Playwright playwright = Playwright.create();
-    Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(Config.headless()));
-    Page page = browser.newContext(new Browser.NewContextOptions().setLocale(Config.browserLocale())).newPage();
+    Browser browser = playwright.chromium()
+        .launch(new BrowserType.LaunchOptions().setHeadless(Config.headless()));
+    Page page = browser.newContext(
+        new Browser.NewContextOptions().setLocale(Config.browserLocale())).newPage();
     page.setDefaultTimeout(Config.actionTimeoutMs());
     page.setDefaultNavigationTimeout(Config.actionTimeoutMs());
-    // Both values are AutoCloseable, so the store closes them itself in reverse insertion order: page first, then playwright
+    // Kept in the store so a failure between here and afterEach still ends with both closed
     context.getStore(NAMESPACE).put(Playwright.class, playwright);
     context.getStore(NAMESPACE).put(Page.class, page);
   }
 
+  /**
+   * The browser is closed here, before the store closes the user fixtures: a page that outlives its
+   * user could still send a request, and rfr-api would recreate the deleted profile from the
+   * token.
+   */
   @Override
   public void afterEach(ExtensionContext context) {
-    Page page = context.getStore(NAMESPACE).get(Page.class, Page.class);
-    if (context.getExecutionException().isPresent()) {
-      Allure.attachment("Screenshot on failure", "image/png",
-          new ByteArrayInputStream(page.screenshot(new Page.ScreenshotOptions().setFullPage(true))),
-          AttachmentOptions.withFileExtension("png"));
+    ExtensionContext.Store store = context.getStore(NAMESPACE);
+    Playwright playwright = store.remove(Playwright.class, Playwright.class);
+    Page page = store.remove(Page.class, Page.class);
+    try {
+      if (page != null && context.getExecutionException().isPresent()) {
+        Allure.attachment("Screenshot on failure", "image/png",
+            new ByteArrayInputStream(
+                page.screenshot(new Page.ScreenshotOptions().setFullPage(true))),
+            AttachmentOptions.withFileExtension("png"));
+      }
+    } finally {
+      if (playwright != null) {
+        playwright.close();
+      }
     }
   }
 
   @Override
-  public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public boolean supportsParameter(ParameterContext parameterContext,
+      ExtensionContext extensionContext) {
     return parameterContext.getParameter().getType() == Page.class;
   }
 
   @Override
-  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public Object resolveParameter(ParameterContext parameterContext,
+      ExtensionContext extensionContext) {
     return extensionContext.getStore(NAMESPACE).get(Page.class, Page.class);
   }
 }

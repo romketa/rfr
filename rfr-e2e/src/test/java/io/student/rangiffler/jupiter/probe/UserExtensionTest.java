@@ -2,6 +2,7 @@ package io.student.rangiffler.jupiter.probe;
 
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.data.db.AuthAccount;
+import io.student.rangiffler.data.db.Friendship;
 import io.student.rangiffler.data.db.FriendshipStatus;
 import io.student.rangiffler.data.db.Friendships;
 import io.student.rangiffler.data.db.Profile;
@@ -19,6 +20,7 @@ import org.junit.platform.testkit.engine.EngineTestKit;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -74,20 +76,26 @@ class UserExtensionTest {
   }
 
   @Test
-  void shouldCreateOutcomeInvitationsBeforeTestAndDeleteThemAfter() {
-    EngineExecutionResults results = run(OutcomeInvitationsScenario.class);
+  void shouldCreatePendingInvitationToInviteeAndDeleteItAfter() {
+    EngineExecutionResults results = run(OutcomeInvitationScenario.class);
 
     results.testEvents().assertStatistics(stats -> stats.succeeded(1));
     Map<String, String> published = published(results);
-    assertAll(
-        () -> assertEquals(2, published.get("invitees").split(",").length),
-        () -> assertEquals("0", published.get("friendsCount")),
-        () -> assertEquals("0", published.get("invitersCount")),
-        () -> assertEquals("true", published.get("invitationsExist")),
-        () -> assertEquals("true", published.get("inviteesSeeInvitation")));
-    Stream.of(published.get("username"), published.get("invitees"))
-        .flatMap(usernames -> Stream.of(usernames.split(",")))
-        .forEach(UserExtensionTest::assertDeleted);
+    assertEquals("PENDING", published.get("invitationStatus"));
+    assertTrue(Friendship.find(UUID.fromString(published.get("invitationId"))).isEmpty(),
+        "Invitation " + published.get("invitationId") + " is left in rangiffler-api");
+    assertDeleted(published.get("invitee"));
+  }
+
+  @Test
+  void shouldRejectNegativeOutcomeInvitationsBeforeCreatingUser() {
+    EngineExecutionResults results = run(NegativeCountScenario.class);
+
+    results.testEvents().assertStatistics(stats -> stats.failed(1));
+    Throwable failure = failure(results);
+    assertInstanceOf(IllegalArgumentException.class, failure);
+    assertTrue(failure.getMessage().contains("must not be negative"), failure.getMessage());
+    assertTrue(published(results).isEmpty(), "The test body ran although its request was invalid");
   }
 
   @Test
@@ -188,22 +196,28 @@ class UserExtensionTest {
 
   @Nested
   @Tag("engine-kit")
-  class OutcomeInvitationsScenario {
+  class OutcomeInvitationScenario {
 
     @Test
-    void shouldPublishOutcomeInvitations(@User(outcomeInvitations = 2) TestUser user,
+    void shouldPublishInvitation(@User(outcomeInvitations = 1) TestUser user,
         TestReporter reporter) {
-      Profile profile = Profile.find(user.username()).orElseThrow();
+      TestUser invitee = user.outcomeInvitations().getFirst();
+      Friendship invitation = Friendship.find(Profile.find(user.username()).orElseThrow(),
+          Profile.find(invitee.username()).orElseThrow()).orElseThrow();
       reporter.publishEntry(Map.of(
-          "username", user.username(),
-          "invitees", usernames(user.outcomeInvitations()),
-          "friendsCount", String.valueOf(user.friends().size()),
-          "invitersCount", String.valueOf(user.incomeInvitations().size()),
-          "invitationsExist",
-          String.valueOf(Friendships.of(profile, FriendshipStatus.PENDING).exists()),
-          "inviteesSeeInvitation", String.valueOf(user.outcomeInvitations().stream()
-              .map(invitee -> Profile.find(invitee.username()).orElseThrow())
-              .allMatch(invitee -> Friendships.of(invitee, FriendshipStatus.PENDING).exists()))));
+          "invitee", invitee.username(),
+          "invitationId", invitation.id().toString(),
+          "invitationStatus", invitation.status().name()));
+    }
+  }
+
+  @Nested
+  @Tag("engine-kit")
+  class NegativeCountScenario {
+
+    @Test
+    void shouldNotRun(@User(outcomeInvitations = -1) TestUser user, TestReporter reporter) {
+      reporter.publishEntry("username", user.username());
     }
   }
 
