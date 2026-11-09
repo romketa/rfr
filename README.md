@@ -132,7 +132,7 @@ Mock контроллеры в rfr-api будут возвращать стат�
 Тестам нужен весь стенд из шагов 1-4 (MySQL, rfr-auth, rfr-api, фронт):
 
 ```bash
-./gradlew :rfr-e2e:e2e                          # UI-тесты (пакет io.student.rangiffler.test.web)
+./gradlew :rfr-e2e:e2e                          # UI-тесты (пакеты io.student.rangiffler.test.web и test.people)
 ./gradlew :rfr-e2e:e2e --tests '*ProfileTest'   # один класс
 ./gradlew :rfr-e2e:allureServe                  # Allure-отчет в браузере
 ```

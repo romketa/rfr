@@ -43,7 +43,7 @@ bash ports.sh                    # kill processes on 9001/8081/3001
 cd rfr-gql-client && npm ci && npm run dev    # frontend
 
 ./gradlew :rfr-e2e:test                                                        # e2e tests
-./gradlew :rfr-e2e:e2e                                                         # UI tests only (package io.student.rangiffler.test.web)
+./gradlew :rfr-e2e:e2e                                                         # UI tests only (packages io.student.rangiffler.test.web and test.people)
 ./gradlew :rfr-e2e:test --tests 'io.student.rangiffler.test.fake.SimpleTest'   # single class/method
 ./gradlew :rfr-e2e:allureServe                                                 # Allure report (io.qameta.allure plugin)
 ```
