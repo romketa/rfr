@@ -21,15 +21,20 @@ public record UserRequest(TestProfile profile, int friends, int incomeInvitation
 
   public UserFixture fixture() {
     UserFixture fixture = new SingleUserFixture(this);
-    if (friends > 0) {
-      fixture = new UserWithFriendsFixture(fixture, friends);
-    }
-    if (incomeInvitations > 0) {
-      fixture = new UserWithIncomeInvitationFixture(fixture, incomeInvitations);
-    }
-    if (outcomeInvitations > 0) {
-      fixture = new UserWithOutcomeInvitationsFixture(fixture, outcomeInvitations);
+    for (Relation relation : Relation.values()) {
+      int count = count(relation);
+      if (count > 0) {
+        fixture = new UserWithRelationsFixture(fixture, relation, count);
+      }
     }
     return fixture;
+  }
+
+  private int count(Relation relation) {
+    return switch (relation) {
+      case FRIEND -> friends;
+      case INCOME_INVITATION -> incomeInvitations;
+      case OUTCOME_INVITATION -> outcomeInvitations;
+    };
   }
 }
