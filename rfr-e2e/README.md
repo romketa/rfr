@@ -41,8 +41,8 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`), `extension` (`BrowserExtension`, `UserExtension`) |
-| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorators `UserWithFriendsFixture`, `UserWithIncomeInvitationFixture`, `UserWithOutcomeInvitationsFixture`, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`), `probe` — EngineTestKit tests of the extensions |
+| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorators `UserWithFriendsFixture`, `UserWithIncomeInvitationFixture`, `UserWithOutcomeInvitationsFixture`, `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
 | `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
@@ -56,6 +56,11 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
 - `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
   inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.
+- `@StaticUser` (on a `TestUser` parameter) → `UsersQueueExtension` → `StaticUserFixture`: a model of a stand where users
+  cannot be created on the fly. `create()` takes a user from the thread-safe `UsersQueue` of three pre-created pairs
+  (any username/password, they need not exist in the stand) and fails with a clear message after a 30 s wait when the
+  queue is empty; `close()` returns only the taken user and deletes nothing. The fixture goes into the Store before
+  `create()`, so the user comes back even after a failed test.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
