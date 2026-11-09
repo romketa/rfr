@@ -102,6 +102,7 @@ class UserExtensionTest {
     EngineExecutionResults results = run(FailingScenario.class);
 
     results.testEvents().assertStatistics(stats -> stats.failed(1));
+    assertEquals("The scenario fails on purpose", failure(results).getMessage());
     assertDeleted(published(results).get("username"));
   }
 
