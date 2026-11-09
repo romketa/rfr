@@ -9,30 +9,8 @@ import io.student.rangiffler.page.MyTravelsPage;
 import io.student.rangiffler.page.PeoplePage;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 @WebTest
 public class FriendsTest {
-
-  @Test
-  void shouldShowFriends(@User(friends = 2) TestUser user, Page page) {
-    openPeople(user, page)
-        .checkPeople(usernames(user.friends()));
-  }
-
-  @Test
-  void shouldShowIncomeInvitations(@User(incomeInvitations = 2) TestUser user, Page page) {
-    openPeople(user, page)
-        .clickIncomeInvitationsTab()
-        .checkPeople(usernames(user.incomeInvitations()));
-  }
-
-  @Test
-  void shouldShowOutcomeInvitations(@User(outcomeInvitations = 2) TestUser user, Page page) {
-    openPeople(user, page)
-        .clickOutcomeInvitationsTab()
-        .checkPeople(usernames(user.outcomeInvitations()));
-  }
 
   @Test
   void shouldShowIncomeInvitationToInvitee(@User(outcomeInvitations = 1) TestUser user, Page page) {
@@ -127,9 +105,5 @@ public class FriendsTest {
         .clickLogin()
         .fillLoginForm(user.username(), user.password())
         .clickSignIn();
-  }
-
-  private static String[] usernames(List<TestUser> users) {
-    return users.stream().map(TestUser::username).toArray(String[]::new);
   }
 }

@@ -22,6 +22,7 @@ public final class PeoplePage {
   private final Locator searchButton;
   private final Locator rows;
   private final Locator snackbar;
+  private final Locator emptyMessage;
 
   public PeoplePage(Page page) {
     this.page = page;
@@ -38,6 +39,7 @@ public final class PeoplePage {
         new Page.GetByRoleOptions().setName("search").setExact(true));
     this.rows = page.locator("tbody").getByRole(AriaRole.ROW);
     this.snackbar = page.getByRole(AriaRole.ALERT);
+    this.emptyMessage = page.getByText("There are no users yet");
   }
 
   @Step("Open people page")
@@ -118,6 +120,25 @@ public final class PeoplePage {
     for (String username : usernames) {
       assertThat(row(username)).isVisible();
     }
+    return this;
+  }
+
+  @Step("Check that the actions of {username} are {buttons}")
+  public PeoplePage checkActions(String username, String... buttons) {
+    assertThat(row(username).getByRole(AriaRole.BUTTON)).hasText(buttons);
+    return this;
+  }
+
+  @Step("Check that {username} is marked as waiting")
+  public PeoplePage checkWaiting(String username) {
+    assertThat(row(username).getByText("Waiting...")).isVisible();
+    return this;
+  }
+
+  @Step("Check that the table is empty")
+  public PeoplePage checkNoPeople() {
+    assertThat(rows).hasCount(0);
+    assertThat(emptyMessage).isVisible();
     return this;
   }
 
