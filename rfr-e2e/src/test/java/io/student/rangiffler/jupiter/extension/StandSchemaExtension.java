@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class StandShemExtension implements SuiteExtension {
+public final class StandSchemaExtension implements SuiteExtension {
 
   public static final String ROOT_PARAMETER = "rfr.migrations.root";
 

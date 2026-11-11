@@ -74,13 +74,13 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
   type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
   registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
-- `StandShemExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) runs once before every
+- `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) runs once before every
   test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
   Flyway CRC32 checksum) with the migration files of the checked-out `rfr-auth` and `rfr-api`. Switching a backend
   branch without recreating the database leaves the schema ahead of the code, which Flyway ignores by default
   (`ignoreMigrationPatterns=*:future`); the extension fails the whole run instead, naming the migrations and the action:
   check out the branch, restart the backend, or recreate the `mysql-volume`. The repository root is found by
-  `settings.gradle` (`rfr.repo.root` overrides it); the probe `StandShemExtensionTest` points it at a temporary copy
+  `settings.gradle` (`rfr.repo.root` overrides it); the probe `StandSchemaExtensionTest` points it at a temporary copy
   through the configuration parameter `rfr.migrations.root`.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
