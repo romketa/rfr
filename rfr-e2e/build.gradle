@@ -32,6 +32,7 @@ dependencies {
     testImplementation "com.microsoft.playwright:playwright:$playwrightVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "org.junit.platform:junit-platform-suite"
     testImplementation "org.junit.platform:junit-platform-testkit"
 
     testImplementation "org.springframework:spring-jdbc:$springJdbcVersion"
@@ -61,12 +62,11 @@ tasks.withType(Test).configureEach {
 
 tasks.register('e2e', Test) {
     group = 'verification'
-    description = 'Runs the UI tests from io.student.rangiffler.test.web and test.people'
+    description = 'Runs the UI tests from io.student.rangiffler.test.web and test.people through E2eSuite'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     filter {
-        includeTestsMatching 'io.student.rangiffler.test.web.*'
-        includeTestsMatching 'io.student.rangiffler.test.people.*'
+        includeTestsMatching 'io.student.rangiffler.test.E2eSuite'
     }
 }
 
