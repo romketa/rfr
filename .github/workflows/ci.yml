@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  pull_request:
+  # Caches written on master are visible to every PR; caches written in a PR stay within that PR
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changed modules
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+      frontend: ${{ steps.frontend.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            workflow: &workflow
+              - '.github/workflows/ci.yml'
+            gradle: &gradle
+              - *workflow
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle.properties'
+              - 'gradlew'
+              - 'gradle/**'
+            backend:
+              - *gradle
+              - 'rfr-auth/**'
+              - 'rfr-api/**'
+            e2e:
+              - *gradle
+              - 'rfr-e2e/**'
+      - uses: dorny/paths-filter@v3
+        id: frontend
+        with:
+          filters: |
+            frontend:
+              - '.github/workflows/ci.yml'
+              - 'rfr-gql-client/**'
+
+  backend:
+    name: Build rfr-auth and rfr-api
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      # Caches Gradle dependencies and wrapper; the cache is saved only on master
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew :rfr-auth:build :rfr-api:build
+
+  e2e:
+    name: Compile rfr-e2e
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v5
+      # Compile only: running the tests needs the whole stand (MySQL, rfr-auth, rfr-api, frontend)
+      - run: ./gradlew :rfr-e2e:testClasses
+
+  frontend:
+    name: Lint and build rfr-gql-client
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rfr-gql-client
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          # Caches the npm download cache keyed by package-lock.json
+          cache: npm
+          cache-dependency-path: rfr-gql-client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  e2e-tests:
+    name: Run e2e tests against the full stand
+    needs: changes
+    # The tests touch every module, so any change to auth, api, e2e, the frontend, Gradle or this file runs them
+    if: >-
+      needs.changes.outputs.backend == 'true'
+      || needs.changes.outputs.e2e == 'true'
+      || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4.7
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+        # Same healthcheck as compose.yaml: the steps start only once MySQL answers on TCP
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -psecret --silent"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+          --health-start-period 30s
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rfr-gql-client/package-lock.json
+      # Started first so the backends compile and boot while the frontend and the browser are being installed
+      - name: Start rfr-auth and rfr-api
+        run: ./gradlew runAll > runAll.log 2>&1 &
+      - name: Start the frontend
+        working-directory: rfr-gql-client
+        run: |
+          npm ci
+          npm run dev > ../frontend.log 2>&1 &
+      - name: Install Chromium with its system libraries
+        run: ./gradlew :rfr-e2e:installPlaywrightWithDeps
+      - name: Wait for rfr-auth, rfr-api and the frontend
+        timeout-minutes: 5
+        # curl without -f succeeds on any HTTP answer (a 401 or a redirect too) and fails only while nothing listens
+        run: |
+          for port in 9001 8081 3001; do
+            until curl -s -o /dev/null "http://localhost:$port"; do sleep 2; done
+            echo "Port $port is up"
+          done
+      - name: Run e2e tests
+        run: ./gradlew :rfr-e2e:test
+      - name: Show the stand logs
+        if: failure()
+        run: tail -n 200 runAll.log frontend.log
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: rfr-e2e/build/allure-results

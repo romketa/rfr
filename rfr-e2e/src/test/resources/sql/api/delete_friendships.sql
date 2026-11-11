@@ -1,1 +1,1 @@
-delete from `friendship` where requester_id = ? or addressee_id = ?
+delete from `friendship` where requester_id = UUID_TO_BIN(?) or addressee_id = UUID_TO_BIN(?)
