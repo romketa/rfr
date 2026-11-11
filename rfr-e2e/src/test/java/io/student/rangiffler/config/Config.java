@@ -2,6 +2,7 @@ package io.student.rangiffler.config;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Locale;
 
 /**
@@ -12,6 +13,9 @@ public final class Config {
 
   private static final String FRONT_URL = "http://localhost:3001";
   private static final String AUTH_URL = "http://localhost:9001";
+  private static final String API_URL = "http://localhost:8081";
+  private static final long STAND_TIMEOUT_SECONDS = 180;
+  private static final boolean STAND_CHECK = true;
   private static final boolean HEADLESS = true;
   // rfr-auth localizes its messages by Accept-Language, so the locale is pinned instead of taken from the OS
   private static final String BROWSER_LOCALE = "en-US";
@@ -30,6 +34,19 @@ public final class Config {
 
   public static String authUrl() {
     return resolve("auth.url", AUTH_URL);
+  }
+
+  public static String apiUrl() {
+    return resolve("api.url", API_URL);
+  }
+
+  public static Duration standTimeout() {
+    return Duration.ofSeconds(
+        Long.parseLong(resolve("stand.timeout", String.valueOf(STAND_TIMEOUT_SECONDS))));
+  }
+
+  public static boolean standCheck() {
+    return Boolean.parseBoolean(resolve("stand.check", String.valueOf(STAND_CHECK)));
   }
 
   public static boolean headless() {
