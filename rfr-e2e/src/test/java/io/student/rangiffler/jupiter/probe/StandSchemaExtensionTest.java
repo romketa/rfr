@@ -5,7 +5,6 @@ import io.student.rangiffler.jupiter.annotation.ProbeTarget;
 import io.student.rangiffler.jupiter.extension.StandSchemaExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -84,6 +83,7 @@ class StandSchemaExtensionTest {
 
   private EngineExecutionResults run() {
     return EngineTestKit.engine("junit-jupiter")
+        .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
         .configurationParameter(StandSchemaExtension.ROOT_PARAMETER, root.toString())
         .selectors(selectClass(Target.class))
         .execute();
@@ -103,7 +103,6 @@ class StandSchemaExtensionTest {
   }
 
   @ProbeTarget
-  @ExtendWith(StandSchemaExtension.class)
   static final class Target {
 
     @Test
