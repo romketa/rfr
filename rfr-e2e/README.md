@@ -74,9 +74,8 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
   type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
   registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
-- `StandSchemaExtension.verify(root)` is called from `@BeforeSuite` of `E2eSuite` (`junit-platform-suite`, selects the
-  packages `test.web` and `test.people`; the `e2e` task runs only this suite) and compares `flyway_schema_history` of
-  `rangiffler-auth` and `rangiffler-api` (version, description,
+- `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) runs once before every
+  test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
   Flyway CRC32 checksum) with the migration files of the checked-out `rfr-auth` and `rfr-api`. Switching a backend
   branch without recreating the database leaves the schema ahead of the code, which Flyway ignores by default
   (`ignoreMigrationPatterns=*:future`); the extension fails the whole run instead, naming the migrations and the action:
