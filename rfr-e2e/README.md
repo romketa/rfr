@@ -32,7 +32,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
 | `rfr.db.user` / `rfr.db.password` | `root` / `secret` |
 
-The browser is always Chromium. Parallel execution and extension autodetection (`ServiceLoader`, see `DemoExtension` below) are configured in `src/test/resources/junit-platform.properties`; parallel execution is off by default.
+The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default.
 
 ## Architecture
 
@@ -67,18 +67,13 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   instances and prints every call to stdout as a tree: a header line per `ExtensionContext` (outer class, nested class,
   test method) the first time it is seen, indented by its depth, and under it the callbacks as `DemoExtension#<n> <callback>`,
   with `new DemoExtension#<n>` printed before the first call of an instance; each test logs `test body runs with` and
-  the `DemoValue`s it received at the same depth, and inside a test the same lines go to Allure as steps.
-  `ExtendWithPlacementsTest` registers it once per `@Nested` scenario, in a different place each time: test class,
-  superclass, interface, composed annotation `@DemoTest`, test method, static and instance field, constructor
-  parameter, test method parameter, lifecycle method parameter, each scenario with two tests. On top of that
-  `DemoExtension` is registered automatically for the whole run: `junit.jupiter.extensions.autodetection.enabled=true`
-  in `junit-platform.properties` and `META-INF/services/org.junit.jupiter.api.extension.Extension` put it into the root
-  registry, so every test class in the module, `SimpleTest` and the UI tests included, gets its `beforeAll`/`afterAll`,
-  the per-test callbacks and the Allure steps. The registry ignores an extension type that is already registered higher
-  in the hierarchy, so with autodetection on all ten `@ExtendWith` placements are deduplicated into that one global
-  instance (`DemoExtension#1` everywhere in the tree); with autodetection off each placement gets its own instance, one
-  per class for every placement except the test method and its parameter, which get a new instance per test and no
-  `beforeAll`/`afterAll`. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
+  the `DemoValue`s it received at the same depth, and inside a test the same lines go to Allure as steps. `ExtendWithPlacementsTest` registers it once per `@Nested` scenario, in a different place each time: test
+  class, superclass, interface, composed annotation `@DemoTest`, test method, static and instance field, constructor
+  parameter, test method parameter, lifecycle method parameter. Every scenario has two tests, so the tree shows whether
+  one instance serves the whole class (every placement except the test method and its parameter, which get a new
+  instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
+  type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
+  registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
