@@ -41,11 +41,11 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
 | `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
-| `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
+| `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup and `ExtendWithPlacementsTest`, a demo of every place `@ExtendWith` can be declared (see below) |
 
 SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is loaded with `Jdbc.sql("auth/insert_user")`.
 
@@ -61,6 +61,19 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   (any username/password, they need not exist in the stand) and fails with a clear message after a 30 s wait when the
   queue is empty; `close()` returns only the taken user and deletes nothing. The fixture goes into the Store before
   `create()`, so the user comes back even after a failed test.
+- `DemoExtension` is a teaching extension with no test data: it implements every `*Callback` of the test lifecycle
+  (`BeforeAll`, `TestInstancePreConstruct`, `BeforeEach`, `BeforeTestExecution`, `AfterTestExecution`, `AfterEach`,
+  `TestInstancePreDestroy`, `AfterAll`) and a `ParameterResolver` for `DemoExtension.DemoValue`. It numbers its
+  instances and prints every call to stdout as a tree: a header line per `ExtensionContext` (outer class, nested class,
+  test method) the first time it is seen, indented by its depth, and under it the callbacks as `DemoExtension#<n> <callback>`,
+  with `new DemoExtension#<n>` printed before the first call of an instance; each test logs `test body runs with` and
+  the `DemoValue`s it received at the same depth, and inside a test the same lines go to Allure as steps. `ExtendWithPlacementsTest` registers it once per `@Nested` scenario, in a different place each time: test
+  class, superclass, interface, composed annotation `@DemoTest`, test method, static and instance field, constructor
+  parameter, test method parameter, lifecycle method parameter. Every scenario has two tests, so the tree shows whether
+  one instance serves the whole class (every placement except the test method and its parameter, which get a new
+  instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
+  type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
+  registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
