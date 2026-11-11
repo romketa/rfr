@@ -32,12 +32,12 @@ dependencies {
     testImplementation "com.microsoft.playwright:playwright:$playwrightVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
-    testImplementation "org.junit.platform:junit-platform-launcher"
     testImplementation "org.junit.platform:junit-platform-testkit"
 
     testImplementation "org.springframework:spring-jdbc:$springJdbcVersion"
     testImplementation "org.springframework.security:spring-security-crypto:$springSecurityCryptoVersion"
     testRuntimeOnly "com.mysql:mysql-connector-j:$mysqlDriverVersion"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     testRuntimeOnly "org.aspectj:aspectjrt:$aspectJVersion"
 }
 

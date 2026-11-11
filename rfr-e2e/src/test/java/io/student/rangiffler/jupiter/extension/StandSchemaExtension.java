@@ -33,11 +33,8 @@ public final class StandSchemaExtension implements SuiteExtension {
 
   @Override
   public void beforeSuite(ExtensionContext context) {
-    verify(context.getConfigurationParameter(ROOT_PARAMETER).map(Path::of)
-        .orElseGet(Config::repoRoot));
-  }
-
-  public static void verify(Path root) {
+    Path root = context.getConfigurationParameter(ROOT_PARAMETER).map(Path::of)
+        .orElseGet(Config::repoRoot);
     String report = SCHEMAS.stream()
         .map(schema -> report(schema, root))
         .filter(lines -> !lines.isEmpty())
