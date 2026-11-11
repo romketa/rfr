@@ -143,14 +143,6 @@ jobs:
           npm run dev > ../frontend.log 2>&1 &
       - name: Install Chromium with its system libraries
         run: ./gradlew :rfr-e2e:installPlaywrightWithDeps
-      - name: Wait for rfr-auth, rfr-api and the frontend
-        timeout-minutes: 5
-        # curl without -f succeeds on any HTTP answer (a 401 or a redirect too) and fails only while nothing listens
-        run: |
-          for port in 9001 8081 3001; do
-            until curl -s -o /dev/null "http://localhost:$port"; do sleep 2; done
-            echo "Port $port is up"
-          done
       - name: Run e2e tests
         run: ./gradlew :rfr-e2e:test
       - name: Show the stand logs

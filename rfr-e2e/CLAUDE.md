@@ -17,3 +17,5 @@
   `junit-platform.properties`). Never register it with `@ExtendWith` or `@RegisterExtension`, and never list the
   `SuiteExtension` interface itself: a partial registration breaks the once-per-run semantics of `beforeSuite`/`afterSuite`,
   and the interface has no constructor for `ServiceLoader`, so no test in the module starts.
+- The order of the lines in that services file is the order in which the extensions run: `StandReadinessExtension`
+  stays above `StandSchemaExtension`, because the schema check needs MySQL to be up.

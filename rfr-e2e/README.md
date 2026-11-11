@@ -25,6 +25,9 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 |---|---|
 | `rfr.front.url` | `http://localhost:3001` |
 | `rfr.auth.url` | `http://localhost:9001` |
+| `rfr.api.url` | `http://localhost:8081` |
+| `rfr.stand.timeout` | `180` (seconds the UI tests wait for MySQL, `rfr-auth`, `rfr-api` and the frontend to answer) |
+| `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
@@ -41,7 +44,7 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
 | `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`), row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`), `SchemaHistory` (applied `Migration`s of a schema), `Migration` (also parsed from a `V*.sql` file with the Flyway checksum) and `SchemaDrift` between the two; UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
@@ -74,6 +77,17 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
   type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
   registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
+- `StandReadinessExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) waits for the stand
+  before the first class tagged `ui` (`@WebTest` carries the tag), so both the `e2e` task and a single UI test started
+  from the IDE wait instead of failing on a Playwright timeout; classes without the tag never touch the stand, and
+  `rfr.stand.check=false` switches the wait off. It polls the same signs as the compose healthcheck and the former CI
+  step: MySQL accepts a TCP connection, `rfr-auth`, `rfr-api` and the frontend answer any HTTP status. Every request is
+  bounded by 2 s, the whole wait by `rfr.stand.timeout`; afterwards the error names the services that never answered
+  and the commands that start them (`docker compose up -d --wait`, `./gradlew runAll`, `npm run dev`). The probe
+  `StandReadinessExtensionTest` points the four addresses at fake servers through `rfr.stand.mysql`, `rfr.stand.auth`,
+  `rfr.stand.api` and `rfr.stand.front`. It is listed before `StandSchemaExtension` in the services file because the
+  schema check needs MySQL: Jupiter registers autodetected extensions in `ServiceLoader` order, which on the class path
+  is the order of the lines in the file, and `BeforeAllCallback`s run in registration order.
 - `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) runs once before every
   test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
   Flyway CRC32 checksum) with the migration files of the checked-out `rfr-auth` and `rfr-api`. Switching a backend
