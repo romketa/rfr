@@ -12,3 +12,8 @@
   - `supportsParameter` only checks that the parameter has the annotation and the expected type, using the same check
     as `beforeEach`;
   - `resolveParameter` only takes the fixture from the store and returns its data; it never creates anything.
+- An implementation of `SuiteExtension` is registered only globally: its class name goes into
+  `src/test/resources/META-INF/services/org.junit.jupiter.api.extension.Extension` (autodetection is on in
+  `junit-platform.properties`). Never register it with `@ExtendWith` or `@RegisterExtension`, and never list the
+  `SuiteExtension` interface itself: a partial registration breaks the once-per-run semantics of `beforeSuite`/`afterSuite`,
+  and the interface has no constructor for `ServiceLoader`, so no test in the module starts.
