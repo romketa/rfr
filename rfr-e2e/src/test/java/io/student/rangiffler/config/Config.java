@@ -1,5 +1,7 @@
 package io.student.rangiffler.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
 
 /**
@@ -56,6 +58,23 @@ public final class Config {
 
   public static String dbPassword() {
     return resolve("db.password", DB_PASSWORD);
+  }
+
+  // The e2e tests run from rfr-e2e under Gradle and from either directory under the IDE, so the
+  // root is found by its settings.gradle instead of a fixed relative path
+  public static Path repoRoot() {
+    String property = resolve("repo.root", "");
+    if (!property.isEmpty()) {
+      return Path.of(property);
+    }
+    Path start = Path.of("").toAbsolutePath();
+    for (Path dir = start; dir != null; dir = dir.getParent()) {
+      if (Files.exists(dir.resolve("settings.gradle"))) {
+        return dir;
+      }
+    }
+    throw new IllegalStateException(
+        "No settings.gradle above " + start + ", set rfr.repo.root to the repository root");
   }
 
   private static String resolve(String key, String fallback) {
