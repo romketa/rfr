@@ -2,7 +2,7 @@ package io.student.rangiffler.jupiter.probe;
 
 import io.student.rangiffler.config.Config;
 import io.student.rangiffler.jupiter.annotation.ProbeTarget;
-import io.student.rangiffler.jupiter.extension.StandShemExtension;
+import io.student.rangiffler.jupiter.extension.StandSchemaExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 
-class StandShemExtensionTest {
+class StandSchemaExtensionTest {
 
   private static final String AUTH_MIGRATIONS = "rfr-auth/src/main/resources/db/migration/rangiffler-auth";
   private static final String API_MIGRATIONS = "rfr-api/src/main/resources/db/migration/rangiffler-api";
@@ -84,7 +84,7 @@ class StandShemExtensionTest {
   private EngineExecutionResults run() {
     return EngineTestKit.engine("junit-jupiter")
         .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
-        .configurationParameter(StandShemExtension.ROOT_PARAMETER, root.toString())
+        .configurationParameter(StandSchemaExtension.ROOT_PARAMETER, root.toString())
         .selectors(selectClass(Target.class))
         .execute();
   }
