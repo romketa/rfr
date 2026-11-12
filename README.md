@@ -36,7 +36,9 @@ rfr/
 │   ├── Реальные контроллеры для пользователей и стран
 │   └── Flyway миграции БД
 ├── rfr-gql-client/        # React + TypeScript Frontend (готов)
-└── rfr-e2e/               # E2E тесты: JUnit 6 + Playwright + Allure 3 (заготовка)
+└── rfr-e2e/               # E2E тесты: JUnit 6 + Playwright + Allure 3 (в работе)
+    ├── Page Objects и фикстуры @User (создает и удаляет пользователя через JDBC) и @StaticUser (пул заранее заведенных пользователей)
+    └── UI-тесты: регистрация, логин, негативный логин, профиль
 ```
 
 **Порты:**
@@ -77,10 +79,12 @@ Mock контроллеры возвращают статические данн
 #### 1. Запусти зависимости (БД):
 
 ```bash
-bash localenv.sh
+docker volume create mysql-volume   # один раз на машине: в compose.yaml том объявлен как external
+docker compose up -d
 ```
 
-Скрипт запустит MySQL в Docker контейнере.
+Compose запустит MySQL 8.4 в Docker-контейнере `rfr-mysql` на порту 3306 (root/secret). Команда возвращается
+до того, как база готова: дождись статуса `healthy` в `docker compose ps` или запускай `docker compose up -d --wait`.
 
 #### 2. Запусти rfr-auth:
 
@@ -100,7 +104,11 @@ cd rfr-api
 
 rfr-api стартанет на порту 8081: http://localhost:8081/graphql
 
-GraphiQL интерфейс доступен по адресу: http://localhost:8081/graphiql
+Оба бэкенда можно запустить и одной командой из корня проекта - `./gradlew runAll` (работает благодаря
+`org.gradle.parallel=true` в `gradle.properties`).
+
+GraphiQL включен по адресу http://localhost:8081/graphiql, но `GET` на него сейчас требует авторизации -
+как открыть его для локальной отладки, описано в разделе "Security config" ниже.
 
 #### 4. Обнови зависимости и запускай фронт:
 
@@ -117,7 +125,20 @@ npm run dev
 Кнопка "Login" работает через сервис auth. После успешной авторизации ты попадешь на главную страницу Rangiffler.
 
 Mock контроллеры в rfr-api будут возвращать статические данные из JSON файлов для ленты фотографий.
-Реальная работа с пользователями и странами уже реализована через базу данных.
+Реальная работа с пользователями, дружбой и странами уже реализована через базу данных.
+
+#### 6. Прогони e2e-тесты
+
+Тестам нужен весь стенд из шагов 1-4 (MySQL, rfr-auth, rfr-api, фронт):
+
+```bash
+./gradlew :rfr-e2e:e2e                          # UI-тесты (пакеты io.student.rangiffler.test.web и test.people)
+./gradlew :rfr-e2e:e2e --tests '*ProfileTest'   # один класс
+./gradlew :rfr-e2e:allureServe                  # Allure-отчет в браузере
+```
+
+Тесты запускаются при каждом вызове, `--rerun-tasks` не нужен. Браузеры Playwright скачает сам при первом прогоне.
+Подробнее о настройках и структуре - в `rfr-e2e/README.md`.
 
 
 # Что дальше?
@@ -481,14 +502,17 @@ message UsersResponse {
 (`JwtAuthenticationConverter` в `RangifflerApiConfiguration`). `id_token` предназначен фронтенду (`aud` = client_id),
 поэтому API его отвергает с 401. Фронтенд использует `id_token` только как `id_token_hint` при logout.
 
-   Access token живет 10 минут. При logout фронтенд отзывает его через `POST /oauth2/revoke` (RFC 7009, публичный клиент
+   Access token живет 30 минут (`access-token-time-to-live` в `rfr-auth/src/main/resources/application.yaml`). При logout фронтенд отзывает его через `POST /oauth2/revoke` (RFC 7009, публичный клиент
 идентифицируется по `client_id`), а затем вызывает OIDC logout. Учтите: access token - самодостаточный JWT, `rfr-api`
 проверяет его локально по подписи и не знает об отзыве, поэтому отозванный токен продолжает приниматься API до `exp`.
 Отзыв делает недействительной авторизацию на стороне `rfr-auth`; мгновенный отказ API потребовал бы opaque-токенов
 и introspection.
 
    Для локального тестирования вы можете открыть страницу
-GraphiQL (`spring.graphql.graphiql.enabled: true` уже включен в `application.yml`):
+GraphiQL (`spring.graphql.graphiql.enabled: true` уже включен в `application.yml`). Сейчас `GET /graphiql` требует
+авторизации - чтобы открыть страницу, добавьте в `RangifflerApiConfiguration` правило для `/graphiql/**`
+(в проекте его нет). `jwtAuthenticationConverter` при этом оставьте: без него claim `authorities` не превратится
+в права, и все `@PreAuthorize` начнут отказывать:
 ```java
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -497,10 +521,12 @@ GraphiQL (`spring.graphql.graphiql.enabled: true` уже включен в `appl
             .authorizeHttpRequests(customizer ->
                 customizer
                     .requestMatchers(HttpMethod.POST, "/graphql").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/graphiql/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/graphiql/**").permitAll() // добавить
                     .anyRequest().authenticated()
             )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
+                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+            ));
         return http.build();
     }
 ```

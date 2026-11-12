@@ -32,6 +32,7 @@ dependencies {
     testImplementation "com.microsoft.playwright:playwright:$playwrightVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "org.junit.platform:junit-platform-testkit"
 
     testImplementation "org.springframework:spring-jdbc:$springJdbcVersion"
     testImplementation "org.springframework.security:spring-security-crypto:$springSecurityCryptoVersion"
@@ -48,9 +49,38 @@ allure {
     }
 }
 
-test {
-    useJUnitPlatform()
+// The tests never run git themselves: the short hash of the checked-out commit goes to the Allure environment
+def commit = providers.exec {
+    commandLine 'git', 'rev-parse', '--short', 'HEAD'
+    ignoreExitValue = true
+}.standardOutput.asText.map { it.trim().isEmpty() ? 'unknown' : it.trim() }
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform {
+        excludeTags 'engine-kit'
+    }
+    outputs.upToDateWhen { false }
     // Forward -Drfr.* from the Gradle command line into the test JVM, where Config reads them
     systemProperties System.properties.findAll { it.key.toString().startsWith('rfr.') }
+    systemProperty 'rfr.commit', commit.get()
     jvmArgumentProviders.add({ ["-javaagent:${configurations.agent.singleFile}"] } as CommandLineArgumentProvider)
+}
+
+tasks.register('e2e', Test) {
+    group = 'verification'
+    description = 'Runs the UI tests from io.student.rangiffler.test.web and test.people'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'io.student.rangiffler.test.web.*'
+        includeTestsMatching 'io.student.rangiffler.test.people.*'
+    }
+}
+
+tasks.register('installPlaywrightWithDeps', JavaExec) {
+    group = 'verification'
+    description = 'Installs Chromium for Playwright together with the system libraries it needs (Ubuntu in CI)'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.microsoft.playwright.CLI'
+    args 'install', '--with-deps', 'chromium'
 }
