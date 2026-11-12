@@ -49,6 +49,12 @@ allure {
     }
 }
 
+// The tests never run git themselves: the short hash of the checked-out commit goes to the Allure environment
+def commit = providers.exec {
+    commandLine 'git', 'rev-parse', '--short', 'HEAD'
+    ignoreExitValue = true
+}.standardOutput.asText.map { it.trim().isEmpty() ? 'unknown' : it.trim() }
+
 tasks.withType(Test).configureEach {
     useJUnitPlatform {
         excludeTags 'engine-kit'
@@ -56,6 +62,7 @@ tasks.withType(Test).configureEach {
     outputs.upToDateWhen { false }
     // Forward -Drfr.* from the Gradle command line into the test JVM, where Config reads them
     systemProperties System.properties.findAll { it.key.toString().startsWith('rfr.') }
+    systemProperty 'rfr.commit', commit.get()
     jvmArgumentProviders.add({ ["-javaagent:${configurations.agent.singleFile}"] } as CommandLineArgumentProvider)
 }
 

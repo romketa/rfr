@@ -28,6 +28,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.api.url` | `http://localhost:8081` |
 | `rfr.stand.timeout` | `180` (seconds the UI tests wait for MySQL, `rfr-auth`, `rfr-api` and the frontend to answer) |
 | `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
+| `rfr.commit` | `unknown` (Gradle passes the short hash of `HEAD`; shown in the Allure environment) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
@@ -44,7 +45,7 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `AllureEnvironmentExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
 | `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`), row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`), `SchemaHistory` (applied `Migration`s of a schema), `Migration` (also parsed from a `V*.sql` file with the Flyway checksum) and `SchemaDrift` between the two; UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
@@ -77,6 +78,14 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
   type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
   registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
+- `AllureEnvironmentExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) writes
+  `environment.properties` into the Allure results directory (`allure.results.directory`, by default
+  `rfr-e2e/build/allure-results`) in `afterSuite`: `frontUrl`, `authUrl`, `apiUrl`, `browser`, `headless`, `commit`
+  (the short hash Gradle passes as `rfr.commit`, the tests never run git) and the current Flyway version of each
+  schema (`authSchemaVersion`, `apiSchemaVersion`, `unavailable` when MySQL does not answer). It is the first line of
+  the services file: Jupiter stops at the first `BeforeAllCallback` that throws, so only an extension registered
+  before the failing one gets its `SuiteRun` and therefore its `afterSuite`. The probe `AllureEnvironmentExtensionTest`
+  points the directory at a temporary one through the configuration parameter `allure.results.directory`.
 - `StandReadinessExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) waits for the stand
   before the first class tagged `ui` (`@WebTest` carries the tag), so both the `e2e` task and a single UI test started
   from the IDE wait instead of failing on a Playwright timeout; classes without the tag never touch the stand, and
