@@ -12,6 +12,7 @@ public final class BrowserOptions implements OptionsFactory {
   @Override
   public Options getOptions() {
     return new Options()
+        .setBrowserName(Config.browser())
         .setHeadless(Config.headless())
         .setTestIdAttribute(TEST_ID_ATTRIBUTE)
         .setContextOptions(contextOptions());

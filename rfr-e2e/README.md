@@ -12,7 +12,7 @@ Rangiffler E2E tests: JUnit 6.1.3, Playwright Java 1.63, Allure 3, Spring `JdbcC
 ./gradlew :rfr-e2e:allureServe                            # build the report and open it in a browser
 ```
 
-Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; the tests use Chromium only.
+Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; `rfr.browser` picks the one the tests use.
 
 Environment: MySQL `:3306`, `rfr-auth :9001`, `rfr-api :8081`, frontend `:3001` (see the root README).
 
@@ -30,6 +30,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
 | `rfr.schema.check` | `false` (the `e2e` task sets `true`: compare the database with the checked-out migrations) |
 | `rfr.commit` | `unknown` (Gradle passes the short hash of `HEAD`; shown in the Allure environment) |
+| `rfr.browser` | `chromium` (`firefox` and `webkit` are the other Playwright names) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.viewport.width` / `rfr.viewport.height` | `1920` / `1080` (viewport of every browser context) |
@@ -64,11 +65,10 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   headless mode (`rfr.headless`), a fixed viewport (`rfr.viewport.width` / `rfr.viewport.height`), the locale and
   `data-test-id` as the attribute behind `getByTestId`. `BrowserExtension` adds what Playwright does not: it sets the
   action timeout (`rfr.timeout.ms`) and the navigation timeout (`rfr.navigation.timeout.ms`) on the context (the
-  assertion timeout is set once in a static block,
-  outside any test, so the Allure aspect does not report it as a step), attaches a full-page screenshot to Allure when
-  the test fails and closes the context in `afterEach`. Playwright itself closes the context only from `TestWatcher`,
-  which runs after the Store has deleted the `@User` fixtures; a page that outlives its user could still send a request,
-  and `rfr-api` would recreate the deleted profile from the token.
+  assertion timeout is set once in a static block, outside any test, so the Allure aspect does not report it as a step)
+  and attaches a full-page screenshot to Allure in `afterEach` when the test fails. The context is closed by Playwright
+  from `TestWatcher`, which runs after the Store has deleted the `@User` fixtures; the page is idle by then and sends
+  no requests, so the deleted profile is not recreated.
 - `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
   inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.

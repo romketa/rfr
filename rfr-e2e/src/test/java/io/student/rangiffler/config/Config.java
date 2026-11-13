@@ -18,6 +18,7 @@ public final class Config {
   private static final boolean STAND_CHECK = true;
   private static final boolean SCHEMA_CHECK = false;
   private static final String COMMIT = "unknown";
+  private static final String BROWSER = "chromium";
   private static final boolean HEADLESS = true;
   // rfr-auth localizes its messages by Accept-Language, so the locale is pinned instead of taken from the OS
   private static final String BROWSER_LOCALE = "en-US";
@@ -60,6 +61,10 @@ public final class Config {
 
   public static String commit() {
     return resolve("commit", COMMIT);
+  }
+
+  public static String browser() {
+    return resolve("browser", BROWSER);
   }
 
   public static boolean headless() {
