@@ -23,7 +23,8 @@ public final class Config {
   private static final String BROWSER_LOCALE = "en-US";
   private static final int VIEWPORT_WIDTH = 1920;
   private static final int VIEWPORT_HEIGHT = 1080;
-  private static final double ACTION_TIMEOUT_MS = 10_000;
+  private static final double ACTION_TIMEOUT_MS = 5_000;
+  private static final double NAVIGATION_TIMEOUT_MS = 30_000;
   private static final String AUTH_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC";
   private static final String API_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC";
   private static final String DB_USER = "root";
@@ -79,6 +80,11 @@ public final class Config {
 
   public static double actionTimeoutMs() {
     return Double.parseDouble(resolve("timeout.ms", String.valueOf(ACTION_TIMEOUT_MS)));
+  }
+
+  public static double navigationTimeoutMs() {
+    return Double.parseDouble(
+        resolve("navigation.timeout.ms", String.valueOf(NAVIGATION_TIMEOUT_MS)));
   }
 
   public static String authDbUrl() {

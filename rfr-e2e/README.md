@@ -33,7 +33,8 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.viewport.width` / `rfr.viewport.height` | `1920` / `1080` (viewport of every browser context) |
-| `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
+| `rfr.timeout.ms` | `5000` (actions such as click and fill, and Playwright assertions) |
+| `rfr.navigation.timeout.ms` | `30000` (navigation: Playwright's own default, kept explicit because `setDefaultTimeout` would otherwise cover navigation too) |
 | `rfr.auth.db.url` | `jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC` |
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
 | `rfr.db.user` / `rfr.db.password` | `root` / `secret` |
@@ -62,7 +63,8 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   and resolve the `Page` method parameter. `BrowserOptions` (Playwright's `OptionsFactory`) pins the settings: explicit
   headless mode (`rfr.headless`), a fixed viewport (`rfr.viewport.width` / `rfr.viewport.height`), the locale and
   `data-test-id` as the attribute behind `getByTestId`. `BrowserExtension` adds what Playwright does not: it sets the
-  action and navigation timeouts on the context (`rfr.timeout.ms`; the assertion timeout is set once in a static block,
+  action timeout (`rfr.timeout.ms`) and the navigation timeout (`rfr.navigation.timeout.ms`) on the context (the
+  assertion timeout is set once in a static block,
   outside any test, so the Allure aspect does not report it as a step), attaches a full-page screenshot to Allure when
   the test fails and closes the context in `afterEach`. Playwright itself closes the context only from `TestWatcher`,
   which runs after the Store has deleted the `@User` fixtures; a page that outlives its user could still send a request,
