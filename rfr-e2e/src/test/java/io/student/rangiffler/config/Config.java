@@ -21,6 +21,8 @@ public final class Config {
   private static final boolean HEADLESS = true;
   // rfr-auth localizes its messages by Accept-Language, so the locale is pinned instead of taken from the OS
   private static final String BROWSER_LOCALE = "en-US";
+  private static final int VIEWPORT_WIDTH = 1920;
+  private static final int VIEWPORT_HEIGHT = 1080;
   private static final double ACTION_TIMEOUT_MS = 10_000;
   private static final String AUTH_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC";
   private static final String API_DB_URL = "jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC";
@@ -65,6 +67,14 @@ public final class Config {
 
   public static String browserLocale() {
     return resolve("browser.locale", BROWSER_LOCALE);
+  }
+
+  public static int viewportWidth() {
+    return Integer.parseInt(resolve("viewport.width", String.valueOf(VIEWPORT_WIDTH)));
+  }
+
+  public static int viewportHeight() {
+    return Integer.parseInt(resolve("viewport.height", String.valueOf(VIEWPORT_HEIGHT)));
   }
 
   public static double actionTimeoutMs() {
