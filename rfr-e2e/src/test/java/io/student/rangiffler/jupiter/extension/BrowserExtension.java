@@ -1,34 +1,25 @@
 package io.student.rangiffler.jupiter.extension;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.assertions.PlaywrightAssertions;
+import com.microsoft.playwright.impl.junit.BrowserContextExtension;
+import com.microsoft.playwright.impl.junit.PageExtension;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AttachmentOptions;
 import io.student.rangiffler.config.Config;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
 
 import java.io.ByteArrayInputStream;
 
-/**
- * Opens a fresh browser per test so tests can run in parallel without sharing cookies or
- * localStorage, injects {@link Page} into test methods and attaches a screenshot to Allure when a
- * test fails.
- */
-public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
+public class BrowserExtension implements BeforeEachCallback, AfterEachCallback {
 
   private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(
       BrowserExtension.class);
 
   static {
-    // Page timeouts do not apply to PlaywrightAssertions, they have their own default of 5 seconds.
-    // Set once at class load, outside any test, so the Allure aspect does not report it as a test step
     PlaywrightAssertions.setDefaultAssertionTimeout(Config.actionTimeoutMs());
   }
 
@@ -45,39 +36,22 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, 
     context.getStore(NAMESPACE).put(Page.class, page);
   }
 
-  /**
-   * The browser is closed here, before the store closes the user fixtures: a page that outlives its
-   * user could still send a request, and rfr-api would recreate the deleted profile from the
-   * token.
-   */
   @Override
   public void afterEach(ExtensionContext context) {
-    ExtensionContext.Store store = context.getStore(NAMESPACE);
-    Playwright playwright = store.remove(Playwright.class, Playwright.class);
-    Page page = store.remove(Page.class, Page.class);
+    BrowserContext browserContext = context.getStore(NAMESPACE)
+        .remove(BrowserContext.class, BrowserContext.class);
+    if (browserContext == null) {
+      return;
+    }
     try {
-      if (page != null && context.getExecutionException().isPresent()) {
+      if (context.getExecutionException().isPresent()) {
         Allure.attachment("Screenshot on failure", "image/png",
-            new ByteArrayInputStream(
-                page.screenshot(new Page.ScreenshotOptions().setFullPage(true))),
+            new ByteArrayInputStream(PageExtension.getOrCreatePage(context)
+                .screenshot(new Page.ScreenshotOptions().setFullPage(true))),
             AttachmentOptions.withFileExtension("png"));
       }
     } finally {
-      if (playwright != null) {
-        playwright.close();
-      }
+      browserContext.close();
     }
-  }
-
-  @Override
-  public boolean supportsParameter(ParameterContext parameterContext,
-      ExtensionContext extensionContext) {
-    return parameterContext.getParameter().getType() == Page.class;
-  }
-
-  @Override
-  public Object resolveParameter(ParameterContext parameterContext,
-      ExtensionContext extensionContext) {
-    return extensionContext.getStore(NAMESPACE).get(Page.class, Page.class);
   }
 }

@@ -9,7 +9,7 @@ You review test code in rfr-e2e. Load the skill `rfr-test-review` first and appl
 # Limits
 - Never edit files and never apply a patch to the working copy.
 - Bash is only for `git diff`, `git log`, `git show`, `git apply --check` and `./gradlew :rfr-e2e:test --tests <class or method>`.
-- `Page`, `BrowserContext` and `Playwright` belong to `BrowserExtension` (registered by `@WebTest`); do not propose creating or closing them anywhere else.
+- `Page`, `BrowserContext` and `Playwright` come from Playwright's JUnit extensions through `@UsePlaywright(BrowserOptions.class)` on `@WebTest`; `BrowserExtension` only sets timeouts, attaches the failure screenshot and closes the context. Do not propose creating or closing them anywhere else.
 
 # Order of work
 1. Read the diff and every touched file in full, not only the changed hunks.
