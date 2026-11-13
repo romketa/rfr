@@ -16,6 +16,7 @@ public class FriendsTest {
   void shouldShowIncomeInvitationToInvitee(@User(outcomeInvitations = 1) TestUser user, Page page) {
     openPeople(user.outcomeInvitations().getFirst(), page)
         .clickIncomeInvitationsTab()
+        .table()
         .checkPeople(user.username());
   }
 
@@ -23,10 +24,13 @@ public class FriendsTest {
   void shouldCancelOutcomeInvitation(@User(outcomeInvitations = 1) TestUser user, Page page) {
     openPeople(user, page)
         .clickOutcomeInvitationsTab()
-        .clickCancel(user.outcomeInvitations().getFirst().username())
+        .table()
+        .row(user.outcomeInvitations().getFirst().username())
+        .clickCancel()
         .checkMessage("Invitation cancelled")
         .reload()
         .clickOutcomeInvitationsTab()
+        .table()
         .checkPeople();
   }
 
@@ -36,11 +40,14 @@ public class FriendsTest {
     TestUser invitee = user.outcomeInvitations().getFirst();
     PeoplePage inviteePeople = openPeople(invitee, page)
         .clickIncomeInvitationsTab()
-        .clickAccept(user.username())
+        .table()
+        .row(user.username())
+        .clickAccept()
         .checkMessage("Invitation accepted");
     login(inviteePeople.header().clickLogout(), user)
         .sidebar()
         .clickPeople()
+        .table()
         .checkPeople(invitee.username());
   }
 
@@ -48,6 +55,7 @@ public class FriendsTest {
   void shouldShowOutcomeInvitationToInviter(@User(incomeInvitations = 1) TestUser user, Page page) {
     openPeople(user.incomeInvitations().getFirst(), page)
         .clickOutcomeInvitationsTab()
+        .table()
         .checkPeople(user.username());
   }
 
@@ -56,9 +64,12 @@ public class FriendsTest {
     TestUser inviter = user.incomeInvitations().getFirst();
     openPeople(user, page)
         .clickIncomeInvitationsTab()
-        .clickAccept(inviter.username())
+        .table()
+        .row(inviter.username())
+        .clickAccept()
         .checkMessage("Invitation accepted")
         .reload()
+        .table()
         .checkPeople(inviter.username());
   }
 
@@ -77,21 +88,27 @@ public class FriendsTest {
         .sidebar()
         .clickPeople()
         .clickIncomeInvitationsTab()
-        .clickAccept(sender.username())
+        .table()
+        .row(sender.username())
+        .clickAccept()
         .checkMessage("Invitation accepted")
         .reload()
+        .table()
         .checkPeople(sender.username());
   }
 
   private static PeoplePage sendInvitation(TestUser sender, TestUser receiver, Page page) {
-    return openPeople(sender, page)
+    PeoplePage people = openPeople(sender, page)
         .clickAllPeopleTab()
         .fillSearch(receiver.username())
         .clickSearch()
-        .clickAdd(receiver.username())
+        .table()
+        .row(receiver.username())
+        .clickAdd()
         .checkMessage("Invitation sent")
-        .clickOutcomeInvitationsTab()
-        .checkPeople(receiver.username());
+        .clickOutcomeInvitationsTab();
+    people.table().checkPeople(receiver.username());
+    return people;
   }
 
   private static PeoplePage openPeople(TestUser user, Page page) {
