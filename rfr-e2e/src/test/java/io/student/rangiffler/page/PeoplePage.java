@@ -6,6 +6,7 @@ import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
 import io.student.rangiffler.config.Config;
 import io.student.rangiffler.page.component.Header;
+import io.student.rangiffler.page.component.PeopleTable;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -15,18 +16,18 @@ public final class PeoplePage {
 
   private final Page page;
   private final Header header;
+  private final PeopleTable table;
   private final Locator allPeopleTab;
   private final Locator incomeInvitationsTab;
   private final Locator outcomeInvitationsTab;
   private final Locator searchInput;
   private final Locator searchButton;
-  private final Locator rows;
   private final Locator snackbar;
-  private final Locator emptyMessage;
 
   public PeoplePage(Page page) {
     this.page = page;
     this.header = new Header(page);
+    this.table = new PeopleTable(page);
     this.allPeopleTab = page.getByRole(AriaRole.TAB,
         new Page.GetByRoleOptions().setName("All People"));
     this.incomeInvitationsTab = page.getByRole(AriaRole.TAB,
@@ -37,9 +38,7 @@ public final class PeoplePage {
         new Page.GetByRoleOptions().setName("search people"));
     this.searchButton = page.getByRole(AriaRole.BUTTON,
         new Page.GetByRoleOptions().setName("search").setExact(true));
-    this.rows = page.locator("tbody").getByRole(AriaRole.ROW);
     this.snackbar = page.getByRole(AriaRole.ALERT);
-    this.emptyMessage = page.getByText("There are no users yet");
   }
 
   @Step("Open people page")
@@ -56,6 +55,10 @@ public final class PeoplePage {
 
   public Header header() {
     return header;
+  }
+
+  public PeopleTable table() {
+    return table;
   }
 
   @Step("Click All People tab")
@@ -76,12 +79,6 @@ public final class PeoplePage {
     return this;
   }
 
-  @Step("Click Add for {username}")
-  public PeoplePage clickAdd(String username) {
-    row(username).getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Add")).click();
-    return this;
-  }
-
   @Step("Click Income invitations tab")
   public PeoplePage clickIncomeInvitationsTab() {
     incomeInvitationsTab.click();
@@ -94,57 +91,9 @@ public final class PeoplePage {
     return this;
   }
 
-  @Step("Click Accept for {username}")
-  public PeoplePage clickAccept(String username) {
-    row(username).getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Accept"))
-        .click();
-    return this;
-  }
-
-  @Step("Click Cancel for {username}")
-  public PeoplePage clickCancel(String username) {
-    row(username).getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Cancel"))
-        .click();
-    return this;
-  }
-
   @Step("Check that message '{message}' is shown")
   public PeoplePage checkMessage(String message) {
     assertThat(snackbar).hasText(message);
     return this;
-  }
-
-  @Step("Check that the table shows exactly {usernames}")
-  public PeoplePage checkPeople(String... usernames) {
-    assertThat(rows).hasCount(usernames.length);
-    for (String username : usernames) {
-      assertThat(row(username)).isVisible();
-    }
-    return this;
-  }
-
-  @Step("Check that the actions of {username} are {buttons}")
-  public PeoplePage checkActions(String username, String... buttons) {
-    assertThat(row(username).getByRole(AriaRole.BUTTON)).hasText(buttons);
-    return this;
-  }
-
-  @Step("Check that {username} is marked as waiting")
-  public PeoplePage checkWaiting(String username) {
-    assertThat(row(username).getByText("Waiting...")).isVisible();
-    return this;
-  }
-
-  @Step("Check that the table is empty")
-  public PeoplePage checkNoPeople() {
-    assertThat(rows).hasCount(0);
-    assertThat(emptyMessage).isVisible();
-    return this;
-  }
-
-  private Locator row(String username) {
-    return rows.filter(new Locator.FilterOptions()
-        .setHas(page.getByRole(AriaRole.CELL,
-            new Page.GetByRoleOptions().setName(username).setExact(true))));
   }
 }

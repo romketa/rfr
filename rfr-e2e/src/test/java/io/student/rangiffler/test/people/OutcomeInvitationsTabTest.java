@@ -14,6 +14,7 @@ public class OutcomeInvitationsTabTest {
       @User(outcomeInvitations = 1, incomeInvitations = 1) TestUser user, Page page) {
     People.open(user, page)
         .clickOutcomeInvitationsTab()
+        .table()
         .checkPeople(user.outcomeInvitations().getFirst().username());
   }
 
@@ -23,14 +24,17 @@ public class OutcomeInvitationsTabTest {
     String invitee = user.outcomeInvitations().getFirst().username();
     People.open(user, page)
         .clickOutcomeInvitationsTab()
-        .checkWaiting(invitee)
-        .checkActions(invitee, "Cancel");
+        .table()
+        .row(invitee)
+        .checkWaiting()
+        .checkActions("Cancel");
   }
 
   @Test
   void shouldShowEmptyStateWithoutOutcomeInvitations(@User TestUser user, Page page) {
     People.open(user, page)
         .clickOutcomeInvitationsTab()
+        .table()
         .checkNoPeople();
   }
 }

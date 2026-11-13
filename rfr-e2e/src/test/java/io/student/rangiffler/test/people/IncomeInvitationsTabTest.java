@@ -14,6 +14,7 @@ public class IncomeInvitationsTabTest {
       @User(incomeInvitations = 1, outcomeInvitations = 1) TestUser user, Page page) {
     People.open(user, page)
         .clickIncomeInvitationsTab()
+        .table()
         .checkPeople(user.incomeInvitations().getFirst().username());
   }
 
@@ -22,13 +23,16 @@ public class IncomeInvitationsTabTest {
       Page page) {
     People.open(user, page)
         .clickIncomeInvitationsTab()
-        .checkActions(user.incomeInvitations().getFirst().username(), "Accept", "Decline");
+        .table()
+        .row(user.incomeInvitations().getFirst().username())
+        .checkActions("Accept", "Decline");
   }
 
   @Test
   void shouldShowEmptyStateWithoutIncomeInvitations(@User TestUser user, Page page) {
     People.open(user, page)
         .clickIncomeInvitationsTab()
+        .table()
         .checkNoPeople();
   }
 }
