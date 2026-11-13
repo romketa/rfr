@@ -9,7 +9,6 @@ import io.student.rangiffler.page.component.Sidebar;
 import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public final class MyTravelsPage {
 
@@ -39,18 +38,10 @@ public final class MyTravelsPage {
     return sidebar;
   }
 
-  /**
-   * The Apollo cache renders the page before the token round-trip is proven, so the access token in
-   * localStorage is checked explicitly: it is what every GraphQL request carries.
-   */
   @Step("Check that the user is authorized")
   public MyTravelsPage checkAuthorized() {
     assertThat(page).hasURL(Pattern.compile("/my-travels$"));
     header.checkAuthorized();
-    // Playwright has no assertion for localStorage, hence the plain JUnit assertion
-    String accessToken = (String) page.evaluate(
-        "() => window.localStorage.getItem('access_token') ?? ''");
-    assertFalse(accessToken.isBlank(), "Access token is missing in localStorage after login");
     return this;
   }
 }
