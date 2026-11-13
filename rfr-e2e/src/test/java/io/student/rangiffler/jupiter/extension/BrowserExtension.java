@@ -16,9 +16,6 @@ import java.io.ByteArrayInputStream;
 
 public class BrowserExtension implements BeforeEachCallback, AfterEachCallback {
 
-  private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(
-      BrowserExtension.class);
-
   static {
     PlaywrightAssertions.setDefaultAssertionTimeout(Config.actionTimeoutMs());
   }
@@ -38,20 +35,11 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback {
 
   @Override
   public void afterEach(ExtensionContext context) {
-    BrowserContext browserContext = context.getStore(NAMESPACE)
-        .remove(BrowserContext.class, BrowserContext.class);
-    if (browserContext == null) {
-      return;
-    }
-    try {
-      if (context.getExecutionException().isPresent()) {
-        Allure.attachment("Screenshot on failure", "image/png",
-            new ByteArrayInputStream(PageExtension.getOrCreatePage(context)
-                .screenshot(new Page.ScreenshotOptions().setFullPage(true))),
-            AttachmentOptions.withFileExtension("png"));
-      }
-    } finally {
-      browserContext.close();
+    if (context.getExecutionException().isPresent()) {
+      Allure.attachment("Screenshot on failure", "image/png",
+          new ByteArrayInputStream(PageExtension.getOrCreatePage(context)
+              .screenshot(new Page.ScreenshotOptions().setFullPage(true))),
+          AttachmentOptions.withFileExtension("png"));
     }
   }
 }
