@@ -24,10 +24,8 @@ jobs:
         id: filter
         with:
           filters: |
-            workflow: &workflow
-              - '.github/workflows/ci.yml'
             gradle: &gradle
-              - *workflow
+              - '.github/workflows/ci.yml'
               - 'build.gradle'
               - 'settings.gradle'
               - 'gradle.properties'
@@ -144,12 +142,22 @@ jobs:
       - name: Install Chromium with its system libraries
         run: ./gradlew :rfr-e2e:installPlaywrightWithDeps
       - name: Wait for rfr-auth, rfr-api and the frontend
-        timeout-minutes: 5
-        # curl without -f succeeds on any HTTP answer (a 401 or a redirect too) and fails only while nothing listens
+        # curl without -f succeeds on any HTTP answer (a 401 or a redirect too) and fails only while nothing listens.
+        # One deadline for the whole stand: a service that never starts fails this step with its name, and the
+        # step below prints the stand logs, instead of the job dying on the generic step timeout without a reason
         run: |
-          for port in 9001 8081 3001; do
-            until curl -s -o /dev/null "http://localhost:$port"; do sleep 2; done
-            echo "Port $port is up"
+          timeout=180
+          deadline=$((SECONDS + timeout))
+          for service in rfr-auth:9001 rfr-api:8081 frontend:3001; do
+            port="${service##*:}"
+            until curl -s --max-time 2 -o /dev/null "http://localhost:$port"; do
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "::error::${service%%:*} did not answer on port $port within $timeout seconds, see the stand logs below"
+                exit 1
+              fi
+              sleep 2
+            done
+            echo "${service%%:*} is up on port $port"
           done
       - name: Run e2e tests
         run: ./gradlew :rfr-e2e:test
