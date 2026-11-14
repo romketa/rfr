@@ -32,7 +32,8 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
 | `rfr.db.user` / `rfr.db.password` | `root` / `secret` |
 
-The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default.
+The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default
+(`junit.jupiter.execution.parallel.enabled=false`).
 
 ## Architecture
 

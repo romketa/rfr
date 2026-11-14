@@ -8,7 +8,7 @@ Authorization Code + PKCE. `rfr-api` validates the issued access tokens against 
 
 ## Technology stack
 
-- **Java 25**, Gradle 9.7.1 (wrapper in the project root)
+- **Java 25**, Gradle 9.7.1 (wrapper `gradlew` in the project root)
 - **Spring Boot 4.1.1**
 - **Spring Security 7** + **Spring Authorization Server** - OAuth 2.1 / OIDC
 - **Spring Data JPA**, **Flyway**, **MySQL 8.4** (`rangiffler-auth` schema)
