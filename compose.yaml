@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.4.7
+    container_name: rfr-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    volumes:
+      - mysql-volume:/var/lib/mysql
+    healthcheck:
+      # TCP on 127.0.0.1, not the socket: during first-run init the temporary server listens on the socket only
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mysql-volume:
+    # Shared with localenv.sh, so both ways of starting MySQL see the same data
+    external: true

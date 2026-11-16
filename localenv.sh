@@ -1,8 +1,16 @@
 #!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
 
-echo '### Stop and remove containers ###'
-docker stop $(docker ps -a -q)
-docker rm $(docker ps -a -q)
+# compose.yaml declares the volume as external, so it must exist before the first start
+docker volume create mysql-volume > /dev/null
+
+# A container left by the former docker-run version of this script holds the name; the data stays in the volume
+if [ -n "$(docker ps -aq --filter 'name=^rfr-mysql$')" ] \
+  && [ -z "$(docker inspect rfr-mysql --format '{{index .Config.Labels "com.docker.compose.project"}}')" ]; then
+  echo '### Remove standalone rfr-mysql container ###'
+  docker rm -f rfr-mysql > /dev/null
+fi
 
 echo '### Run mysql db ###'
-docker run --name rfr-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=secret -v mysql-volume:/var/lib/mysql -d mysql:8.4.7
+docker compose up -d --wait --wait-timeout 120 mysql
