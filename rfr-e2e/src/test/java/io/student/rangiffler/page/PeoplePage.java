@@ -35,7 +35,7 @@ public final class PeoplePage {
     this.allPeopleTab = page.getByRole(AriaRole.TAB,
         new Page.GetByRoleOptions().setName("All People"));
     this.incomeInvitationsTab = page.getByRole(AriaRole.TAB,
-        new Page.GetByRoleOptions().setName("Income invitations"));
+        new Page.GetByRoleOptions().setName("Incoming invitations"));
     this.outcomeInvitationsTab =
         page.getByRole(AriaRole.TAB, new Page.GetByRoleOptions().setName("Outcome invitations"));
     this.searchInput = page.getByRole(AriaRole.TEXTBOX,
