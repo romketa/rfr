@@ -35,14 +35,13 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, 
   @Override
   public void beforeEach(ExtensionContext context) {
     Playwright playwright = Playwright.create();
+    context.getStore(NAMESPACE).put(Playwright.class, playwright);
     Browser browser = playwright.chromium()
         .launch(new BrowserType.LaunchOptions().setHeadless(Config.headless()));
     Page page = browser.newContext(
         new Browser.NewContextOptions().setLocale(Config.browserLocale())).newPage();
     page.setDefaultTimeout(Config.actionTimeoutMs());
     page.setDefaultNavigationTimeout(Config.actionTimeoutMs());
-    // Kept in the store so a failure between here and afterEach still ends with both closed
-    context.getStore(NAMESPACE).put(Playwright.class, playwright);
     context.getStore(NAMESPACE).put(Page.class, page);
   }
 
