@@ -65,7 +65,6 @@ class AllureEnvironmentExtensionTest {
 
   private EngineExecutionResults run(Class<?> target) {
     return EngineTestKit.engine("junit-jupiter")
-        .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
         .configurationParameter(AllureEnvironmentExtension.RESULTS_PARAMETER, results.toString())
         .selectors(selectClass(target))
         .execute();
@@ -100,6 +99,7 @@ class AllureEnvironmentExtensionTest {
   }
 
   @ProbeTarget
+  @ExtendWith(AllureEnvironmentExtension.class)
   static final class Target {
 
     @Test
@@ -108,7 +108,7 @@ class AllureEnvironmentExtensionTest {
   }
 
   @ProbeTarget
-  @ExtendWith(Broken.class)
+  @ExtendWith({AllureEnvironmentExtension.class, Broken.class})
   static final class BrokenTarget {
 
     @Test

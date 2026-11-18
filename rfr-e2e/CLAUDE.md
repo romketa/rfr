@@ -14,7 +14,9 @@
   - `resolveParameter` only takes the fixture from the store and returns its data; it never creates anything.
 - An implementation of `SuiteExtension` is registered only globally: its class name goes into
   `src/test/resources/META-INF/services/org.junit.jupiter.api.extension.Extension` (autodetection is on in
-  `junit-platform.properties`). Never register it with `@ExtendWith` or `@RegisterExtension`, and never list the
+  `junit-platform.properties`). Never register it with `@ExtendWith` or `@RegisterExtension` (the only exception is a
+  `@ProbeTarget` in `jupiter/probe`: a probe runs EngineTestKit without autodetection and puts only the extension under
+  test on its target, so the other global extensions never touch the real stand), and never list the
   `SuiteExtension` interface itself: a partial registration breaks the once-per-run semantics of `beforeSuite`/`afterSuite`,
   and the interface has no constructor for `ServiceLoader`, so no test in the module starts.
 - The order of the lines in that services file is the order in which the extensions run, and Jupiter stops calling
