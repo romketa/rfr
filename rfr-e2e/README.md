@@ -10,6 +10,7 @@ Rangiffler E2E tests: JUnit 6.1.3, Playwright Java 1.63, Allure 3, Spring `JdbcC
 ./gradlew :rfr-e2e:test --tests '*LoginTest'
 ./gradlew :rfr-e2e:allureReport                           # rfr-e2e/build/reports/allure-report/allureReport/index.html
 ./gradlew :rfr-e2e:allureServe                            # build the report and open it in a browser
+./gradlew :rfr-e2e:showTrace -Ptrace=build/traces/<class>/<method>/trace.zip   # open the trace of a failed test in TraceViewer
 ```
 
 Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; `rfr.browser` picks the one the tests use.
@@ -69,6 +70,13 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   and attaches a full-page screenshot to Allure in `afterEach` when the test fails. The context is closed by Playwright
   from `TestWatcher`, which runs after the Store has deleted the `@User` fixtures; the page is idle by then and sends
   no requests, so the deleted profile is not recreated.
+- `@WebTest` also registers `PagesExtension`: in `beforeEach` it builds one Guice injector per test around the
+  Playwright `Page` and resolves page object parameters (`LandingPage landingPage`) from it, so every page and
+  component exists once per test and nothing calls `new` on them.
+- `@WebTest` also registers `TraceExtension`: it starts Playwright tracing of the context (screenshots, snapshots,
+  sources) in `beforeEach`; in `afterEach` a failed test gets
+  `build/traces/<test class>/<test method>/trace.zip`, attached to Allure as `trace.zip`, and a passed test drops
+  its trace. Open the file with `./gradlew :rfr-e2e:showTrace -Ptrace=<path>`.
 - `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
   inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.
