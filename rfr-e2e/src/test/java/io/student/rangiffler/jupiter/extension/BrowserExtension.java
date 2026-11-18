@@ -22,15 +22,9 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback {
 
   @Override
   public void beforeEach(ExtensionContext context) {
-    Playwright playwright = Playwright.create();
-    context.getStore(NAMESPACE).put(Playwright.class, playwright);
-    Browser browser = playwright.chromium()
-        .launch(new BrowserType.LaunchOptions().setHeadless(Config.headless()));
-    Page page = browser.newContext(
-        new Browser.NewContextOptions().setLocale(Config.browserLocale())).newPage();
-    page.setDefaultTimeout(Config.actionTimeoutMs());
-    page.setDefaultNavigationTimeout(Config.actionTimeoutMs());
-    context.getStore(NAMESPACE).put(Page.class, page);
+    BrowserContext browserContext = BrowserContextExtension.getOrCreateBrowserContext(context);
+    browserContext.setDefaultTimeout(Config.actionTimeoutMs());
+    browserContext.setDefaultNavigationTimeout(Config.navigationTimeoutMs());
   }
 
   @Override
