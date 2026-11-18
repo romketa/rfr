@@ -4,6 +4,7 @@ import com.microsoft.playwright.Page;
 import io.qameta.allure.Step;
 import io.student.rangiffler.config.Config;
 import io.student.rangiffler.page.component.Header;
+import io.student.rangiffler.page.component.Sidebar;
 
 import java.util.regex.Pattern;
 
@@ -16,10 +17,12 @@ public final class MyTravelsPage {
 
   private final Page page;
   private final Header header;
+  private final Sidebar sidebar;
 
   public MyTravelsPage(Page page) {
     this.page = page;
     this.header = new Header(page);
+    this.sidebar = new Sidebar(page);
   }
 
   @Step("Open my travels page")
@@ -32,16 +35,21 @@ public final class MyTravelsPage {
     return header;
   }
 
+  public Sidebar sidebar() {
+    return sidebar;
+  }
+
   /**
-   * The Apollo cache renders the page before the token round-trip is proven, so the access token
-   * in localStorage is checked explicitly: it is what every GraphQL request carries.
+   * The Apollo cache renders the page before the token round-trip is proven, so the access token in
+   * localStorage is checked explicitly: it is what every GraphQL request carries.
    */
   @Step("Check that the user is authorized")
   public MyTravelsPage checkAuthorized() {
     assertThat(page).hasURL(Pattern.compile("/my-travels$"));
     header.checkAuthorized();
     // Playwright has no assertion for localStorage, hence the plain JUnit assertion
-    String accessToken = (String) page.evaluate("() => window.localStorage.getItem('access_token') ?? ''");
+    String accessToken = (String) page.evaluate(
+        "() => window.localStorage.getItem('access_token') ?? ''");
     assertFalse(accessToken.isBlank(), "Access token is missing in localStorage after login");
     return this;
   }

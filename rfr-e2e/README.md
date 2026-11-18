@@ -5,7 +5,7 @@ Rangiffler E2E tests: JUnit 6.1.3, Playwright Java 1.63, Allure 3, Spring `JdbcC
 ## Running
 
 ```bash
-./gradlew :rfr-e2e:e2e                                   # UI tests only (package test.web)
+./gradlew :rfr-e2e:e2e                                   # UI tests only (packages test.web and test.people)
 ./gradlew :rfr-e2e:test --tests '*RegistrationTest'
 ./gradlew :rfr-e2e:test --tests '*LoginTest'
 ./gradlew :rfr-e2e:allureReport                           # rfr-e2e/build/reports/allure-report/allureReport/index.html
@@ -42,8 +42,8 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`), `extension` (`BrowserExtension`, `UserExtension`) |
-| `data` | test data and their owners: `TestUser`, `UserFixture`, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
 | `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
@@ -57,6 +57,11 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
 - `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
   inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.
+- `@StaticUser` (on a `TestUser` parameter) → `UsersQueueExtension` → `StaticUserFixture`: a model of a stand where users
+  cannot be created on the fly. `create()` takes a user from the thread-safe `UsersQueue` of three pre-created pairs
+  (any username/password, they need not exist in the stand) and fails with a clear message after a 30 s wait when the
+  queue is empty; `close()` returns only the taken user and deletes nothing. The fixture goes into the Store before
+  `create()`, so the user comes back even after a failed test.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
