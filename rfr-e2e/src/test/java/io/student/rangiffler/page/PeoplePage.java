@@ -4,12 +4,15 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 import io.student.rangiffler.page.component.Header;
 import io.student.rangiffler.page.component.PeopleTable;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@Singleton
 public final class PeoplePage {
 
   public static final String URL = Config.frontUrl() + "/people";
@@ -24,10 +27,11 @@ public final class PeoplePage {
   private final Locator searchButton;
   private final Locator snackbar;
 
-  public PeoplePage(Page page) {
+  @Inject
+  public PeoplePage(Page page, Header header, PeopleTable table) {
     this.page = page;
-    this.header = new Header(page);
-    this.table = new PeopleTable(page);
+    this.header = header;
+    this.table = table;
     this.allPeopleTab = page.getByRole(AriaRole.TAB,
         new Page.GetByRoleOptions().setName("All People"));
     this.incomeInvitationsTab = page.getByRole(AriaRole.TAB,

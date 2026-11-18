@@ -4,31 +4,34 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@Singleton
 public final class PeopleTable {
 
-  private final Page page;
+  private final PeopleRow row;
   private final Locator rows;
   private final Locator emptyMessage;
 
-  public PeopleTable(Page page) {
-    this.page = page;
-    Locator root = page.getByRole(AriaRole.TABPANEL);
-    this.rows = root.getByTestId("people-row");
-    this.emptyMessage = root.getByText("There are no users yet");
+  @Inject
+  public PeopleTable(Page page, PeopleRow row) {
+    this.row = row;
+    this.rows = row.rows();
+    this.emptyMessage = page.getByRole(AriaRole.TABPANEL).getByText("There are no users yet");
   }
 
-  public PeopleRow row(String username) {
-    return new PeopleRow(page, rows, username);
+  public PeopleRow row() {
+    return row;
   }
 
   @Step("Check that the table shows exactly {usernames}")
   public PeopleTable checkPeople(String... usernames) {
     assertThat(rows).hasCount(usernames.length);
     for (String username : usernames) {
-      row(username).checkShown();
+      row.checkShown(username);
     }
     return this;
   }

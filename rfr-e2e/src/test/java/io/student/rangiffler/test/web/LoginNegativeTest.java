@@ -1,6 +1,5 @@
 package io.student.rangiffler.test.web;
 
-import com.microsoft.playwright.Page;
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.annotation.WebTest;
@@ -12,8 +11,8 @@ import org.junit.jupiter.api.Test;
 public class LoginNegativeTest {
 
   @Test
-  void shouldRejectWrongPassword(@User TestUser user, Page page) {
-    new LandingPage(page)
+  void shouldRejectWrongPassword(@User TestUser user, LandingPage landingPage) {
+    landingPage
         .open()
         .clickLogin()
         .fillLoginForm(user.username(), user.password() + "-wrong")
@@ -22,8 +21,8 @@ public class LoginNegativeTest {
   }
 
   @Test
-  void shouldRejectUnknownUser(Page page) {
-    new LandingPage(page)
+  void shouldRejectUnknownUser(LandingPage landingPage) {
+    landingPage
         .open()
         .clickLogin()
         .fillLoginForm(DataUtils.randomUsername(), DataUtils.randomPassword())

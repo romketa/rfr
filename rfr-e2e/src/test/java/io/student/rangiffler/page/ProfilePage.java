@@ -4,6 +4,8 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 
 import java.io.IOException;
@@ -19,6 +21,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
  * Profile form: avatar, first name, surname, location, Save and Reset.
  * Reset restores the values of the signed-in user known to the frontend, not empty fields.
  */
+@Singleton
 public final class ProfilePage {
 
   public static final String URL = Config.frontUrl() + "/profile";
@@ -33,6 +36,7 @@ public final class ProfilePage {
   private final Locator resetButton;
   private final Locator snackbar;
 
+  @Inject
   public ProfilePage(Page page) {
     this.page = page;
     Locator form = page.locator("form").filter(new Locator.FilterOptions()

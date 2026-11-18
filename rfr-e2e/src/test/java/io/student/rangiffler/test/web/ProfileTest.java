@@ -1,6 +1,5 @@
 package io.student.rangiffler.test.web;
 
-import com.microsoft.playwright.Page;
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.annotation.WebTest;
@@ -24,8 +23,8 @@ public class ProfileTest {
   private static final String DEFAULT_LOCATION = "Russian Federation";
 
   @Test
-  void shouldSaveFirstname(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldSaveFirstname(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .fillFirstname("Ivan")
         .clickSave()
         .checkSuccessMessage()
@@ -34,8 +33,8 @@ public class ProfileTest {
   }
 
   @Test
-  void shouldSaveSurname(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldSaveSurname(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .fillSurname("Petrov")
         .clickSave()
         .checkSuccessMessage()
@@ -44,8 +43,8 @@ public class ProfileTest {
   }
 
   @Test
-  void shouldSaveLocation(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldSaveLocation(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .selectLocation("Canada")
         .clickSave()
         .checkSuccessMessage()
@@ -54,8 +53,8 @@ public class ProfileTest {
   }
 
   @Test
-  void shouldSaveAvatar(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldSaveAvatar(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .uploadAvatar(AVATAR)
         .clickSave()
         .checkSuccessMessage()
@@ -65,16 +64,17 @@ public class ProfileTest {
 
   @Test
   void shouldShowProfileCreatedBeforeFirstLogin(
-      @User(firstname = "Ivan", surname = "Petrov", country = "ca") TestUser user, Page page) {
-    openProfile(user, page)
+      @User(firstname = "Ivan", surname = "Petrov", country = "ca") TestUser user,
+      LandingPage landingPage) {
+    openProfile(user, landingPage)
         .checkFirstname("Ivan")
         .checkSurname("Petrov")
         .checkLocation("Canada");
   }
 
   @Test
-  void shouldDiscardUnsavedChangesOnReset(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldDiscardUnsavedChangesOnReset(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .fillFirstname("Ivan")
         .fillSurname("Petrov")
         .selectLocation("Canada")
@@ -87,8 +87,8 @@ public class ProfileTest {
   }
 
   @Test
-  void shouldResetToSavedProfile(@User TestUser user, Page page) {
-    openProfile(user, page)
+  void shouldResetToSavedProfile(@User TestUser user, LandingPage landingPage) {
+    openProfile(user, landingPage)
         .fillFirstname("Ivan")
         .selectLocation("Canada")
         .clickSave()
@@ -100,8 +100,8 @@ public class ProfileTest {
         .checkLocation("Canada");
   }
 
-  private static ProfilePage openProfile(TestUser user, Page page) {
-    return new LandingPage(page)
+  private static ProfilePage openProfile(TestUser user, LandingPage landingPage) {
+    return landingPage
         .open()
         .clickLogin()
         .fillLoginForm(user.username(), user.password())

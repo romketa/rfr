@@ -1,9 +1,9 @@
 package io.student.rangiffler.test.people;
 
-import com.microsoft.playwright.Page;
 import io.student.rangiffler.data.TestUser;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.annotation.WebTest;
+import io.student.rangiffler.page.LandingPage;
 import org.junit.jupiter.api.Test;
 
 @WebTest
@@ -11,8 +11,8 @@ public class OutcomeInvitationsTabTest {
 
   @Test
   void shouldShowOnlyOutcomeInvitations(
-      @User(outcomeInvitations = 1, incomeInvitations = 1) TestUser user, Page page) {
-    People.open(user, page)
+      @User(outcomeInvitations = 1, incomeInvitations = 1) TestUser user, LandingPage landingPage) {
+    People.open(user, landingPage)
         .clickOutcomeInvitationsTab()
         .table()
         .checkPeople(user.outcomeInvitations().getFirst().username());
@@ -20,19 +20,19 @@ public class OutcomeInvitationsTabTest {
 
   @Test
   void shouldOfferWaitingAndCancelForInvitee(@User(outcomeInvitations = 1) TestUser user,
-      Page page) {
+      LandingPage landingPage) {
     String invitee = user.outcomeInvitations().getFirst().username();
-    People.open(user, page)
+    People.open(user, landingPage)
         .clickOutcomeInvitationsTab()
         .table()
-        .row(invitee)
-        .checkWaiting()
-        .checkActions("Cancel");
+        .row()
+        .checkWaiting(invitee)
+        .checkActions(invitee, "Cancel");
   }
 
   @Test
-  void shouldShowEmptyStateWithoutOutcomeInvitations(@User TestUser user, Page page) {
-    People.open(user, page)
+  void shouldShowEmptyStateWithoutOutcomeInvitations(@User TestUser user, LandingPage landingPage) {
+    People.open(user, landingPage)
         .clickOutcomeInvitationsTab()
         .table()
         .checkNoPeople();
