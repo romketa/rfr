@@ -1,6 +1,5 @@
 package io.student.rangiffler.test.web;
 
-import com.microsoft.playwright.Page;
 import io.student.rangiffler.data.UserRecords;
 import io.student.rangiffler.jupiter.annotation.WebTest;
 import io.student.rangiffler.page.LandingPage;
@@ -15,10 +14,10 @@ public class RegistrationTest {
   private final String username = DataUtils.randomUsername();
 
   @Test
-  void shouldAuthorizeAfterRegistration(Page page) {
+  void shouldAuthorizeAfterRegistration(LandingPage landingPage) {
     String password = DataUtils.randomPassword();
 
-    new LandingPage(page)
+    landingPage
         .open()
         .clickRegister()
         .fillRegistrationForm(username, password)

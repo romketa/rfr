@@ -4,6 +4,8 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 
 import java.io.IOException;
@@ -19,6 +21,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
  * Profile form: avatar, first name, surname, location, Save and Reset.
  * Reset restores the values of the signed-in user known to the frontend, not empty fields.
  */
+@Singleton
 public final class ProfilePage {
 
   public static final String URL = Config.frontUrl() + "/profile";
@@ -33,6 +36,7 @@ public final class ProfilePage {
   private final Locator resetButton;
   private final Locator snackbar;
 
+  @Inject
   public ProfilePage(Page page) {
     this.page = page;
     Locator form = page.locator("form").filter(new Locator.FilterOptions()
@@ -42,9 +46,7 @@ public final class ProfilePage {
     this.locationSelect = form.getByRole(AriaRole.COMBOBOX, new Locator.GetByRoleOptions().setName("Location"));
     // The file input is hidden behind the "Update avatar" label and has no accessible name
     this.avatarInput = form.locator("input[type='file']");
-    // The avatar image has no alt, and the selected country flag is an image in the same form, so the MUI class is
-    // the only stable hook
-    this.avatarImage = form.locator("img.MuiAvatar-img");
+    this.avatarImage = form.getByTestId("profile-avatar").getByRole(AriaRole.IMG);
     this.saveButton = form.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Save"));
     this.resetButton = form.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Reset"));
     this.snackbar = page.getByRole(AriaRole.ALERT);

@@ -53,7 +53,7 @@ export const ImageUpload: FC<ImageUploadInterface> = ({
             />
             {isAvatar ? (
                 <Box sx={{margin: "0 auto"}}>
-                    <Avatar src={file} sx={{width: 220, height: 220}}/>
+                    <Avatar src={file} data-test-id="profile-avatar" sx={{width: 220, height: 220}}/>
                 </Box>
             ) : (
                 <Box sx={{
