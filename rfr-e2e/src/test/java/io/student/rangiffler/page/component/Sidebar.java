@@ -18,7 +18,7 @@ public final class Sidebar {
   @Inject
   public Sidebar(Page page, Provider<PeoplePage> peoplePage) {
     this.peoplePage = peoplePage;
-    Locator root = page.locator(".MuiDrawer-paper");
+    Locator root = page.getByTestId("sidebar");
     this.peopleLink = root.getByRole(AriaRole.LINK,
         new Locator.GetByRoleOptions().setName("People").setExact(true));
   }

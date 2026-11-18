@@ -46,9 +46,7 @@ public final class ProfilePage {
     this.locationSelect = form.getByRole(AriaRole.COMBOBOX, new Locator.GetByRoleOptions().setName("Location"));
     // The file input is hidden behind the "Update avatar" label and has no accessible name
     this.avatarInput = form.locator("input[type='file']");
-    // The avatar image has no alt, and the selected country flag is an image in the same form, so the MUI class is
-    // the only stable hook
-    this.avatarImage = form.locator("img.MuiAvatar-img");
+    this.avatarImage = form.getByTestId("profile-avatar").getByRole(AriaRole.IMG);
     this.saveButton = form.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Save"));
     this.resetButton = form.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Reset"));
     this.snackbar = page.getByRole(AriaRole.ALERT);
