@@ -5,6 +5,7 @@ import io.student.rangiffler.jupiter.annotation.ProbeTarget;
 import io.student.rangiffler.jupiter.extension.StandSchemaExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -44,14 +45,21 @@ class StandSchemaExtensionTest {
 
   @Test
   void shouldRunTestsWhenDatabaseMatchesCheckedOutMigrations() {
-    run().testEvents().assertStatistics(stats -> stats.succeeded(1));
+    run(true).testEvents().assertStatistics(stats -> stats.succeeded(1));
+  }
+
+  @Test
+  void shouldNotCheckSchemaUnlessCheckIsEnabled() throws IOException {
+    Files.delete(root.resolve(API_MIGRATIONS).resolve("V1__schema_init.sql"));
+
+    run(false).testEvents().assertStatistics(stats -> stats.succeeded(1));
   }
 
   @Test
   void shouldFailBeforeTestsWhenDatabaseIsAheadOfCheckedOutBackend() throws IOException {
     Files.delete(root.resolve(API_MIGRATIONS).resolve("V1__schema_init.sql"));
 
-    EngineExecutionResults results = run();
+    EngineExecutionResults results = run(true);
 
     results.testEvents().assertStatistics(stats -> stats.started(0));
     assertCallToAction(results, "[V1 (schema init)] applied to rangiffler-api but missing from",
@@ -63,7 +71,7 @@ class StandSchemaExtensionTest {
     Files.writeString(root.resolve(API_MIGRATIONS).resolve("V2__add_photos.sql"),
         "alter table `photo` add column `title` varchar(255);");
 
-    EngineExecutionResults results = run();
+    EngineExecutionResults results = run(true);
 
     results.testEvents().assertStatistics(stats -> stats.started(0));
     assertCallToAction(results, "[V2 (add photos)] present in", "restart rfr-api so that Flyway");
@@ -75,15 +83,15 @@ class StandSchemaExtensionTest {
         System.lineSeparator() + "-- edited after it was applied", StandardCharsets.UTF_8,
         StandardOpenOption.APPEND);
 
-    EngineExecutionResults results = run();
+    EngineExecutionResults results = run(true);
 
     results.testEvents().assertStatistics(stats -> stats.started(0));
     assertCallToAction(results, "[V1 (schema init)] changed in", "recreate the database with");
   }
 
-  private EngineExecutionResults run() {
+  private EngineExecutionResults run(boolean check) {
     return EngineTestKit.engine("junit-jupiter")
-        .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
+        .configurationParameter(StandSchemaExtension.CHECK_PARAMETER, String.valueOf(check))
         .configurationParameter(StandSchemaExtension.ROOT_PARAMETER, root.toString())
         .selectors(selectClass(Target.class))
         .execute();
@@ -103,6 +111,7 @@ class StandSchemaExtensionTest {
   }
 
   @ProbeTarget
+  @ExtendWith(StandSchemaExtension.class)
   static final class Target {
 
     @Test

@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 public final class StandSchemaExtension implements SuiteExtension {
 
+  public static final String CHECK_PARAMETER = "rfr.schema.check";
   public static final String ROOT_PARAMETER = "rfr.migrations.root";
 
   private static final String RECREATE_DATABASE =
@@ -30,6 +31,14 @@ public final class StandSchemaExtension implements SuiteExtension {
   private static final List<Schema> SCHEMAS = List.of(
       new Schema(Databases.AUTH, "rfr-auth", "rangiffler-auth"),
       new Schema(Databases.API, "rfr-api", "rangiffler-api"));
+
+  @Override
+  public void beforeAll(ExtensionContext context) throws Exception {
+    if (context.getConfigurationParameter(CHECK_PARAMETER).map(Boolean::parseBoolean)
+        .orElseGet(Config::schemaCheck)) {
+      SuiteExtension.super.beforeAll(context);
+    }
+  }
 
   @Override
   public void beforeSuite(ExtensionContext context) {

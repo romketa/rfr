@@ -16,6 +16,7 @@ public final class Config {
   private static final String API_URL = "http://localhost:8081";
   private static final long STAND_TIMEOUT_SECONDS = 180;
   private static final boolean STAND_CHECK = true;
+  private static final boolean SCHEMA_CHECK = false;
   private static final String COMMIT = "unknown";
   private static final boolean HEADLESS = true;
   // rfr-auth localizes its messages by Accept-Language, so the locale is pinned instead of taken from the OS
@@ -48,6 +49,10 @@ public final class Config {
 
   public static boolean standCheck() {
     return Boolean.parseBoolean(resolve("stand.check", String.valueOf(STAND_CHECK)));
+  }
+
+  public static boolean schemaCheck() {
+    return Boolean.parseBoolean(resolve("schema.check", String.valueOf(SCHEMA_CHECK)));
   }
 
   public static String commit() {

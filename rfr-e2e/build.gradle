@@ -71,6 +71,7 @@ tasks.register('e2e', Test) {
     description = 'Runs the UI tests from io.student.rangiffler.test.web and test.people'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'rfr.schema.check', System.getProperty('rfr.schema.check', 'true')
     filter {
         includeTestsMatching 'io.student.rangiffler.test.web.*'
         includeTestsMatching 'io.student.rangiffler.test.people.*'
