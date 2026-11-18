@@ -16,7 +16,7 @@ public final class PeopleTable {
   public PeopleTable(Page page) {
     this.page = page;
     Locator root = page.getByRole(AriaRole.TABPANEL);
-    this.rows = root.locator("tbody").getByRole(AriaRole.ROW);
+    this.rows = root.getByTestId("people-row");
     this.emptyMessage = root.getByText("There are no users yet");
   }
 
