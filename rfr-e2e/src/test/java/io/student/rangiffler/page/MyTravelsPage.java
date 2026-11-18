@@ -25,6 +25,8 @@ public final class MyTravelsPage {
   private final Sidebar sidebar;
   private final PhotoCard photoCard;
   private final Locator photoCards;
+  private final Locator onlyMyTravelsButton;
+  private final Locator withFriendsButton;
   private final Locator visitedCountriesButton;
   private final Locator visitedCountriesList;
   private final Locator countryFilter;
@@ -37,6 +39,10 @@ public final class MyTravelsPage {
     this.sidebar = sidebar;
     this.photoCard = photoCard;
     this.photoCards = page.getByRole(AriaRole.ARTICLE);
+    this.onlyMyTravelsButton = page.getByRole(AriaRole.BUTTON,
+        new Page.GetByRoleOptions().setName("Only my travels").setExact(true));
+    this.withFriendsButton = page.getByRole(AriaRole.BUTTON,
+        new Page.GetByRoleOptions().setName("With friends").setExact(true));
     this.visitedCountriesButton = page.getByRole(AriaRole.BUTTON)
         .filter(new Locator.FilterOptions().setHasText(Pattern.compile("countr(y|ies) visited$")));
     this.visitedCountriesList = page.getByRole(AriaRole.TOOLTIP);
@@ -62,6 +68,18 @@ public final class MyTravelsPage {
 
   public PhotoCard photo() {
     return photoCard;
+  }
+
+  @Step("Click Only my travels")
+  public MyTravelsPage clickOnlyMyTravels() {
+    onlyMyTravelsButton.click();
+    return this;
+  }
+
+  @Step("Click With friends")
+  public MyTravelsPage clickWithFriends() {
+    withFriendsButton.click();
+    return this;
   }
 
   @Step("Click the visited countries counter")

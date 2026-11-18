@@ -49,6 +49,18 @@ public final class PhotoCard {
     return this;
   }
 
+  @Step("Check that the photo {description} offers Photo actions")
+  public PhotoCard checkPhotoActions(String description) {
+    assertThat(button(description, "Photo actions")).isVisible();
+    return this;
+  }
+
+  @Step("Check that the photo {description} offers no Photo actions")
+  public PhotoCard checkNoPhotoActions(String description) {
+    assertThat(button(description, "Photo actions")).isHidden();
+    return this;
+  }
+
   @Step("Check that the photo {description} has {total} likes")
   public PhotoCard checkLikes(String description, int total) {
     assertThat(root(description).getByText(Pattern.compile("^\\d+ likes?$")))
