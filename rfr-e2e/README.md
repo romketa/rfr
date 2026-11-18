@@ -28,6 +28,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.api.url` | `http://localhost:8081` |
 | `rfr.stand.timeout` | `180` (seconds the UI tests wait for MySQL, `rfr-auth`, `rfr-api` and the frontend to answer) |
 | `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
+| `rfr.schema.check` | `false` (the `e2e` task sets `true`: compare the database with the checked-out migrations) |
 | `rfr.commit` | `unknown` (Gradle passes the short hash of `HEAD`; shown in the Allure environment) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
@@ -89,16 +90,19 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
 - `StandReadinessExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) waits for the stand
   before the first class tagged `ui` (`@WebTest` carries the tag), so both the `e2e` task and a single UI test started
   from the IDE wait instead of failing on a Playwright timeout; classes without the tag never touch the stand, and
-  `rfr.stand.check=false` switches the wait off. It polls the same signs as the compose healthcheck and the former CI
-  step: MySQL accepts a TCP connection, `rfr-auth`, `rfr-api` and the frontend answer any HTTP status. Every request is
-  bounded by 2 s, the whole wait by `rfr.stand.timeout`; afterwards the error names the services that never answered
+  `rfr.stand.check=false` switches the wait off. It polls the same signs as `scripts/wait-for-stand.sh`: MySQL accepts
+  a TCP connection, `rfr-auth` answers `GET /.well-known/openid-configuration` with a status below 400, `rfr-api`
+  answers `POST /graphql` with any status (401 without a token is an answer), the frontend answers `GET /` with a
+  status below 400. Every request is bounded by 2 s and by what is left of `rfr.stand.timeout`, so the wait never
+  outlasts the timeout and nothing is asked after it; afterwards the error names the services that never answered
   and the commands that start them (`docker compose up -d --wait`, `./gradlew runAll`, `npm run dev`). The probe
   `StandReadinessExtensionTest` points the four addresses at fake servers through `rfr.stand.mysql`, `rfr.stand.auth`,
   `rfr.stand.api` and `rfr.stand.front`. It is listed before `StandSchemaExtension` in the services file because the
   schema check needs MySQL: Jupiter registers autodetected extensions in `ServiceLoader` order, which on the class path
   is the order of the lines in the file, and `BeforeAllCallback`s run in registration order.
-- `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) runs once before every
-  test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
+- `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) is off unless
+  `rfr.schema.check=true`, which only the `e2e` task sets, so `:rfr-e2e:test` does not need MySQL for it. When on, it
+  runs once before every test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
   Flyway CRC32 checksum) with the migration files of the checked-out `rfr-auth` and `rfr-api`. Switching a backend
   branch without recreating the database leaves the schema ahead of the code, which Flyway ignores by default
   (`ignoreMigrationPatterns=*:future`); the extension fails the whole run instead, naming the migrations and the action:
