@@ -4,6 +4,8 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 import io.student.rangiffler.page.component.Header;
 import io.student.rangiffler.page.component.PhotoCard;
@@ -13,6 +15,7 @@ import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@Singleton
 public final class MyTravelsPage {
 
   public static final String URL = Config.frontUrl() + "/my-travels";
@@ -20,16 +23,19 @@ public final class MyTravelsPage {
   private final Page page;
   private final Header header;
   private final Sidebar sidebar;
+  private final PhotoCard photoCard;
   private final Locator photoCards;
   private final Locator visitedCountriesButton;
   private final Locator visitedCountriesList;
   private final Locator countryFilter;
   private final Locator resetCountryFilterButton;
 
-  public MyTravelsPage(Page page) {
+  @Inject
+  public MyTravelsPage(Page page, Header header, Sidebar sidebar, PhotoCard photoCard) {
     this.page = page;
-    this.header = new Header(page);
-    this.sidebar = new Sidebar(page);
+    this.header = header;
+    this.sidebar = sidebar;
+    this.photoCard = photoCard;
     this.photoCards = page.getByRole(AriaRole.ARTICLE);
     this.visitedCountriesButton = page.getByRole(AriaRole.BUTTON)
         .filter(new Locator.FilterOptions().setHasText(Pattern.compile("countr(y|ies) visited$")));
@@ -54,8 +60,8 @@ public final class MyTravelsPage {
     return sidebar;
   }
 
-  public PhotoCard photo(String description) {
-    return new PhotoCard(page, photoCards, description);
+  public PhotoCard photo() {
+    return photoCard;
   }
 
   @Step("Click the visited countries counter")

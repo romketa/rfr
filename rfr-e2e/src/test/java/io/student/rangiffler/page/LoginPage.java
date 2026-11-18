@@ -4,12 +4,16 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 
 import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@Singleton
 public final class LoginPage {
 
   public static final String URL = Config.authUrl() + "/login";
@@ -19,9 +23,12 @@ public final class LoginPage {
   private final Locator passwordInput;
   private final Locator submitButton;
   private final Locator errorMessage;
+  private final Provider<MyTravelsPage> myTravelsPage;
 
-  public LoginPage(Page page) {
+  @Inject
+  public LoginPage(Page page, Provider<MyTravelsPage> myTravelsPage) {
     this.page = page;
+    this.myTravelsPage = myTravelsPage;
     this.usernameInput = page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Username"));
     // The Thymeleaf label wraps the "Show password" button, so the field has no clean accessible name
     this.passwordInput = page.locator("input[name='password']");
@@ -46,7 +53,7 @@ public final class LoginPage {
   @Step("Click Sign in")
   public MyTravelsPage clickSignIn() {
     submitButton.click();
-    return new MyTravelsPage(page);
+    return myTravelsPage.get();
   }
 
   /**
