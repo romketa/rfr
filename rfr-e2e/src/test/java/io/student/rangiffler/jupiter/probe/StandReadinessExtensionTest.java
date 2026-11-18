@@ -7,17 +7,24 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 import org.junit.platform.testkit.engine.EngineTestKit;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,6 +42,10 @@ class StandReadinessExtensionTest {
   private static final Duration START_DELAY = Duration.ofSeconds(2);
   private static final long POLL_TIMEOUT_SECONDS = 10;
   private static final long SHORT_TIMEOUT_SECONDS = 3;
+  private static final long SILENT_TIMEOUT_SECONDS = 1;
+  private static final Duration SILENT_WAIT_LIMIT = Duration.ofSeconds(3);
+  private static final int UNAUTHORIZED = 401;
+  private static final int UNAVAILABLE = 503;
 
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
   private FakeMysql mysql;
@@ -68,7 +79,7 @@ class StandReadinessExtensionTest {
     EngineExecutionResults results = run(UiTarget.class, POLL_TIMEOUT_SECONDS, true);
 
     results.testEvents().assertStatistics(stats -> stats.succeeded(1));
-    assertTrue(api.requests() > 0, "the late service was never asked");
+    assertTrue(!api.requests().isEmpty(), "the late service was never asked");
   }
 
   @Test
@@ -79,16 +90,64 @@ class StandReadinessExtensionTest {
     EngineExecutionResults results = run(UiTarget.class, SHORT_TIMEOUT_SECONDS, true);
 
     results.testEvents().assertStatistics(stats -> stats.started(0));
-    Throwable failure = results.containerEvents().failed().stream()
-        .findFirst()
-        .flatMap(event -> event.getRequiredPayload(TestExecutionResult.class).getThrowable())
-        .orElseThrow(() -> new AssertionError("No container failed although rfr-api is down"));
+    Throwable failure = failure(results);
     assertInstanceOf(IllegalStateException.class, failure);
     String message = failure.getMessage();
     assertAll(
         () -> assertTrue(message.contains("rfr-api at " + api.url()), message),
         () -> assertTrue(message.contains("./gradlew runAll"), message),
         () -> assertTrue(message.contains("after " + SHORT_TIMEOUT_SECONDS + " s"), message));
+  }
+
+  @Test
+  void shouldAskEveryServiceForItsOwnSignOfReadiness() {
+    EngineExecutionResults results = run(UiTarget.class, POLL_TIMEOUT_SECONDS, true);
+
+    results.testEvents().assertStatistics(stats -> stats.succeeded(1));
+    assertAll(
+        () -> assertEquals(1, mysql.connections(), "mysql"),
+        () -> assertEquals(List.of("GET /.well-known/openid-configuration"), auth.requests()),
+        () -> assertEquals(List.of("POST /graphql {\"query\":\"{__typename}\"}"), api.requests()),
+        () -> assertEquals(List.of("GET /"), front.requests()));
+  }
+
+  @Test
+  void shouldNotTakeAuthAnsweringWithErrorForReady() throws IOException {
+    auth.close();
+    auth = FakeHttp.answering(UNAVAILABLE);
+
+    EngineExecutionResults results = run(UiTarget.class, SHORT_TIMEOUT_SECONDS, true);
+
+    results.testEvents().assertStatistics(stats -> stats.started(0));
+    String message = failure(results).getMessage();
+    assertTrue(message.contains("rfr-auth at " + auth.url()), message);
+  }
+
+  @Test
+  void shouldTakeApiRejectingAnonymousQueryForReady() throws IOException {
+    api.close();
+    api = FakeHttp.answering(UNAUTHORIZED);
+
+    run(UiTarget.class, POLL_TIMEOUT_SECONDS, true).testEvents()
+        .assertStatistics(stats -> stats.succeeded(1));
+  }
+
+  @Test
+  void shouldNotWaitLongerThanTimeoutWhenServicesAcceptButNeverAnswer() throws IOException {
+    auth.close();
+    api.close();
+    front.close();
+    auth = FakeHttp.silent();
+    api = FakeHttp.silent();
+    front = FakeHttp.silent();
+    Instant start = Instant.now();
+
+    EngineExecutionResults results = run(UiTarget.class, SILENT_TIMEOUT_SECONDS, true);
+
+    Duration waited = Duration.between(start, Instant.now());
+    results.testEvents().assertStatistics(stats -> stats.started(0));
+    assertTrue(waited.compareTo(SILENT_WAIT_LIMIT) < 0,
+        "waited " + waited.toMillis() + " ms with a timeout of " + SILENT_TIMEOUT_SECONDS + " s");
   }
 
   @Test
@@ -109,7 +168,6 @@ class StandReadinessExtensionTest {
 
   private EngineExecutionResults run(Class<?> target, long timeoutSeconds, boolean check) {
     return EngineTestKit.engine("junit-jupiter")
-        .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true")
         .configurationParameters(Map.of(
             StandReadinessExtension.CHECK_PARAMETER, String.valueOf(check),
             StandReadinessExtension.TIMEOUT_PARAMETER, String.valueOf(timeoutSeconds),
@@ -121,33 +179,60 @@ class StandReadinessExtensionTest {
         .execute();
   }
 
+  private static Throwable failure(EngineExecutionResults results) {
+    return results.containerEvents().failed().stream()
+        .findFirst()
+        .flatMap(event -> event.getRequiredPayload(TestExecutionResult.class).getThrowable())
+        .orElseThrow(() -> new AssertionError("No container failed although the stand is down"));
+  }
+
   private void assertNoRequests() {
     assertAll(
         () -> assertEquals(0, mysql.connections(), "mysql"),
-        () -> assertEquals(0, auth.requests(), "rfr-auth"),
-        () -> assertEquals(0, api.requests(), "rfr-api"),
-        () -> assertEquals(0, front.requests(), "frontend"));
+        () -> assertEquals(List.of(), auth.requests(), "rfr-auth"),
+        () -> assertEquals(List.of(), api.requests(), "rfr-api"),
+        () -> assertEquals(List.of(), front.requests(), "frontend"));
   }
 
   private static final class FakeHttp {
 
-    private final int port;
-    private final AtomicInteger requests = new AtomicInteger();
-    private HttpServer server;
+    private static final int OK = 200;
 
-    private FakeHttp(int port) {
+    private final int port;
+    private final int status;
+    private final Queue<String> requests = new ConcurrentLinkedQueue<>();
+    private HttpServer server;
+    private ServerSocket silent;
+
+    private FakeHttp(int port, int status) {
       this.port = port;
+      this.status = status;
     }
 
     static FakeHttp listening() throws IOException {
-      FakeHttp fake = reserved();
+      return answering(OK);
+    }
+
+    static FakeHttp answering(int status) throws IOException {
+      FakeHttp fake = reserved(status);
       fake.start();
       return fake;
     }
 
     static FakeHttp reserved() throws IOException {
+      return reserved(OK);
+    }
+
+    static FakeHttp silent() throws IOException {
+      ServerSocket socket = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"));
+      FakeHttp fake = new FakeHttp(socket.getLocalPort(), OK);
+      fake.silent = socket;
+      return fake;
+    }
+
+    private static FakeHttp reserved(int status) throws IOException {
       try (ServerSocket socket = new ServerSocket(0)) {
-        return new FakeHttp(socket.getLocalPort());
+        return new FakeHttp(socket.getLocalPort(), status);
       }
     }
 
@@ -158,8 +243,10 @@ class StandReadinessExtensionTest {
         throw new UncheckedIOException(e);
       }
       server.createContext("/", exchange -> {
-        requests.incrementAndGet();
-        exchange.sendResponseHeaders(200, -1);
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        requests.add((exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath() + " "
+            + body).strip());
+        exchange.sendResponseHeaders(status, -1);
         exchange.close();
       });
       server.start();
@@ -169,14 +256,18 @@ class StandReadinessExtensionTest {
       return "http://127.0.0.1:" + port;
     }
 
-    int requests() {
-      return requests.get();
+    List<String> requests() {
+      return List.copyOf(requests);
     }
 
-    void close() {
+    void close() throws IOException {
       if (server != null) {
         server.stop(0);
         server = null;
+      }
+      if (silent != null) {
+        silent.close();
+        silent = null;
       }
     }
   }
@@ -222,6 +313,7 @@ class StandReadinessExtensionTest {
 
   @ProbeTarget
   @Tag(StandReadinessExtension.UI_TAG)
+  @ExtendWith(StandReadinessExtension.class)
   static final class UiTarget {
 
     @Test
@@ -230,6 +322,7 @@ class StandReadinessExtensionTest {
   }
 
   @ProbeTarget
+  @ExtendWith(StandReadinessExtension.class)
   static final class PlainTarget {
 
     @Test
