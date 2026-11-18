@@ -75,6 +75,18 @@ to ids or css only when the markup gives no accessible name (the Thymeleaf auth 
 component, derive every locator from the component root (`page.getByRole(AriaRole.BANNER)` for the header) because the
 same button or link usually appears elsewhere on the page and an unscoped locator fails strict mode.
 
+**A card or a list row is found by its role and a text only it has; its controls are found only inside it.** The root
+is the role every such element shares, narrowed by a text unique to one of them:
+`page.getByRole(AriaRole.ARTICLE).filter(new Locator.FilterOptions().setHasText(description))` for a photo card, the
+`people-row` test id filtered by the exact username for a people row. Buttons and texts of the element are looked up
+from that root by role and exact name (`root.getByRole(AriaRole.BUTTON, ...setName("like").setExact(true))`), never
+from the page: a feed of seven cards has seven `like` buttons, and a page-level locator fails strict mode. Never pick
+an element by position with `nth()`, `first()` or `last()`: the order changes with sorting, filtering and paging, so
+a positional locator silently acts on another card instead of failing. When the markup gives the element no role or
+name to search by, add them to the frontend (`role`, `aria-labelledby`, `data-test-id`) instead of falling back to
+position. Before relying on such a locator, check in an accessibility snapshot of a full list that it matches exactly
+one element per card.
+
 ## Checklist before finishing
 
 - Class is `final`, no `extends`, reusable parts are components held in fields.
@@ -83,6 +95,7 @@ same button or link usually appears elsewhere on the page and an unscoped locato
 - `public static final String URL` present, `open()` uses it.
 - Each action method is one user action (fill a form, click a control) and returns a page object.
 - Each `check*` method only asserts, with Playwright assertions, and returns `this`.
+- A card or a row is located by role and unique text, its controls only inside it; no `nth()`, `first()` or `last()`.
 - No `checkThatPageLoaded`-style methods; checks assert business outcomes only.
 - Every public action and check method has `@Step` with parameters, no secrets in the text; component accessors have none.
 - Test code calls only page object methods and takes its first page as a parameter; `Page` does not appear in tests.
