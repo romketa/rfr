@@ -5,6 +5,7 @@ import io.student.rangiffler.jupiter.extension.BrowserExtension;
 import io.student.rangiffler.jupiter.extension.BrowserOptions;
 import io.student.rangiffler.jupiter.extension.PagesExtension;
 import io.student.rangiffler.jupiter.extension.StandReadinessExtension;
+import io.student.rangiffler.jupiter.extension.TraceExtension;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -17,7 +18,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Tag(StandReadinessExtension.UI_TAG)
 @UsePlaywright(BrowserOptions.class)
-@ExtendWith({BrowserExtension.class, PagesExtension.class})
+@ExtendWith({BrowserExtension.class, PagesExtension.class, TraceExtension.class})
 public @interface WebTest {
 
 }
