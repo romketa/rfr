@@ -23,8 +23,8 @@ public final class PhotoCard {
     this.page = page;
     this.description = description;
     this.root = cards.filter(new Locator.FilterOptions().setHasText(description));
-    this.likeButton = root.getByRole(AriaRole.BUTTON,
-        new Locator.GetByRoleOptions().setName("like").setExact(true));
+    this.likeButton = page.getByRole(AriaRole.BUTTON,
+        new Page.GetByRoleOptions().setName("like").setExact(true));
     this.photoActionsButton = root.getByRole(AriaRole.BUTTON,
         new Locator.GetByRoleOptions().setName("Photo actions").setExact(true));
     this.likes = root.getByText(Pattern.compile("^\\d+ likes?$"));
