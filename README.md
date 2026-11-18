@@ -37,7 +37,7 @@ rfr/
 │   └── Flyway миграции БД
 ├── rfr-gql-client/        # React + TypeScript Frontend (готов)
 └── rfr-e2e/               # E2E тесты: JUnit 6 + Playwright + Allure 3 (в работе)
-    ├── Page Objects и фикстура @User (создает и удаляет пользователя через JDBC)
+    ├── Page Objects и фикстуры @User (создает и удаляет пользователя через JDBC) и @StaticUser (пул заранее заведенных пользователей)
     └── UI-тесты: регистрация, логин, негативный логин, профиль
 ```
 
@@ -132,7 +132,7 @@ Mock контроллеры в rfr-api будут возвращать стат�
 Тестам нужен весь стенд из шагов 1-4 (MySQL, rfr-auth, rfr-api, фронт):
 
 ```bash
-./gradlew :rfr-e2e:e2e                          # UI-тесты (пакет io.student.rangiffler.test.web)
+./gradlew :rfr-e2e:e2e                          # UI-тесты (пакеты io.student.rangiffler.test.web и test.people)
 ./gradlew :rfr-e2e:e2e --tests '*ProfileTest'   # один класс
 ./gradlew :rfr-e2e:allureServe                  # Allure-отчет в браузере
 ```
