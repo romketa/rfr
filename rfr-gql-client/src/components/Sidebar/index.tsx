@@ -17,6 +17,7 @@ export const Sidebar: FC<SidebarProps> = ({sidebarState}) => {
             anchor="left"
             open={sidebarState}
             variant="permanent"
+            data-test-id="sidebar"
             sx={{
                 '& .MuiDrawer-paper': {
                     bgcolor: "background.paper",
