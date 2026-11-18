@@ -20,8 +20,7 @@ public final class PeopleRow {
     this.page = page;
     this.username = username;
     this.root = rows.filter(new Locator.FilterOptions().setHas(
-        page.getByRole(AriaRole.CELL,
-            new Page.GetByRoleOptions().setName(username).setExact(true))));
+        page.getByText(username, new Page.GetByTextOptions().setExact(true))));
     this.actions = root.getByRole(AriaRole.BUTTON);
     this.waitingChip = root.getByText("Waiting...");
   }
