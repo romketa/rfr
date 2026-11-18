@@ -91,7 +91,7 @@ public final class MyTravelsPage {
   @Step("Select country {country} in the visited countries list")
   public MyTravelsPage selectCountry(String country) {
     visitedCountriesList.getByRole(AriaRole.BUTTON,
-        new Locator.GetByRoleOptions().setName(country).setExact(true)).click();
+        new Locator.GetByRoleOptions().setName(country).setExact(true)).press("Enter");
     return this;
   }
 
