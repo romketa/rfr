@@ -76,11 +76,13 @@ public final class Config {
   }
 
   public static int viewportWidth() {
-    return Integer.parseInt(resolve("viewport.width", String.valueOf(VIEWPORT_WIDTH)));
+    return Integer.parseInt(
+        resolve("viewportWidth", resolve("viewport.width", String.valueOf(VIEWPORT_WIDTH))));
   }
 
   public static int viewportHeight() {
-    return Integer.parseInt(resolve("viewport.height", String.valueOf(VIEWPORT_HEIGHT)));
+    return Integer.parseInt(
+        resolve("viewportHeight", resolve("viewport.height", String.valueOf(VIEWPORT_HEIGHT))));
   }
 
   public static double actionTimeoutMs() {

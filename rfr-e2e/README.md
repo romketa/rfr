@@ -34,7 +34,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.browser` | `chromium` (`firefox` and `webkit` are the other Playwright names) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
-| `rfr.viewport.width` / `rfr.viewport.height` | `1920` / `1080` (viewport of every browser context) |
+| `rfr.viewport.width` / `rfr.viewport.height` (also `rfr.viewportWidth` / `rfr.viewportHeight`, which win when both are set) | `1920` / `1080` (viewport of every browser context) |
 | `rfr.timeout.ms` | `5000` (actions such as click and fill, and Playwright assertions) |
 | `rfr.navigation.timeout.ms` | `30000` (navigation: Playwright's own default, kept explicit because `setDefaultTimeout` would otherwise cover navigation too) |
 | `rfr.auth.db.url` | `jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC` |
