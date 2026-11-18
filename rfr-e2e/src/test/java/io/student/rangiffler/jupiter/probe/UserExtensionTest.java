@@ -20,6 +20,8 @@ import org.junit.platform.testkit.engine.EngineTestKit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -115,6 +117,10 @@ class UserExtensionTest {
     assertInstanceOf(IllegalStateException.class, failure);
     assertTrue(failure.getMessage().contains("country zz is missing"), failure.getMessage());
     assertTrue(published(results).isEmpty(), "The test body ran although its user was not created");
+    Matcher username = Pattern.compile("Profile of (\\S+) was not created")
+        .matcher(failure.getMessage());
+    assertTrue(username.find(), failure.getMessage());
+    assertDeleted(username.group(1));
   }
 
   @Test
