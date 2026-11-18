@@ -52,10 +52,21 @@ the real ones.
 **The page URL is `public static final String URL`.** Built from `Config.frontUrl()` or `Config.authUrl()` so the
 stand can be switched with a property or an environment variable. `open()` navigates to `URL` and returns `this`.
 
-**The constructor takes `Page` and only assigns fields.** Its body is `this.page = page` plus the initialisation of the
-`private final` fields: locators and composed components. It never navigates, waits, asserts or changes browser
-settings, because a page object is also created for a page the test has not opened yet (`login()` returns
-`new MyTravelsPage(page)` before the redirect finishes) and because a constructor with side effects cannot be chained
+**Guice creates pages, code never calls `new` on one.** A page and a page-wide component (header, sidebar) is a
+`@Singleton` with an `@Inject` constructor; `PagesExtension` (part of `@WebTest`) builds one injector per test around
+the Playwright `Page`, so every page exists once per test. A test declares the page it starts from as a parameter
+(`LandingPage landingPage`) instead of `Page`. A page reached by navigation is declared as a
+`private final Provider<MyTravelsPage> myTravelsPage` field and returned with `myTravelsPage.get()`: pages refer to
+each other in a circle (`LoginPage` -> `MyTravelsPage` -> `Header` -> `LandingPage` -> `LoginPage`), and a `Provider`
+is how constructor injection breaks it. A component the page owns is injected directly (`Header header`). A component
+that stands for one of many elements (a table row, a photo card) is a singleton too, so it keeps no username or
+description: every method takes that value as its first parameter (`row().clickAccept(username)`,
+`photo().checkLikes(description, 1)`) and builds the element locator from it in a private method.
+
+**The constructor only assigns fields.** It takes `Page` and the injected pages, providers and components, and its
+body is `this.page = page` plus the initialisation of the `private final` fields. It never navigates, waits, asserts or
+changes browser settings, because Guice creates a page object before the test has opened that page (`clickSignIn()`
+returns `MyTravelsPage` before the redirect finishes) and because a constructor with side effects cannot be chained
 or reported as a step. Opening belongs to `open()`.
 
 **Locators are `private final` fields initialised in the constructor**, named after what the user sees
@@ -67,18 +78,19 @@ same button or link usually appears elsewhere on the page and an unscoped locato
 ## Checklist before finishing
 
 - Class is `final`, no `extends`, reusable parts are components held in fields.
-- Constructor takes `Page`, assigns it and initialises `private final` fields, nothing else.
+- Class is `@Singleton` with an `@Inject` constructor that only assigns `private final` fields.
+- No `new` on a page or a component anywhere: other pages are `Provider<SomePage>` fields, components are injected.
 - `public static final String URL` present, `open()` uses it.
 - Each action method is one user action (fill a form, click a control) and returns a page object.
 - Each `check*` method only asserts, with Playwright assertions, and returns `this`.
 - No `checkThatPageLoaded`-style methods; checks assert business outcomes only.
 - Every public action and check method has `@Step` with parameters, no secrets in the text; component accessors have none.
-- Test code calls only page object methods; `Page` appears in tests only as the injected parameter.
+- Test code calls only page object methods and takes its first page as a parameter; `Page` does not appear in tests.
 
 ## Example chain in a test
 
 ```java
-new LandingPage(page)
+landingPage
     .open()
     .clickRegister()
     .fillRegistrationForm(username, password)
