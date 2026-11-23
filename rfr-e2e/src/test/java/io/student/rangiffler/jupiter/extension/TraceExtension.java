@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.opentest4j.TestAbortedException;
 
 public class TraceExtension implements BeforeEachCallback, AfterEachCallback {
 
@@ -26,13 +27,16 @@ public class TraceExtension implements BeforeEachCallback, AfterEachCallback {
   @Override
   public void afterEach(ExtensionContext context) throws IOException {
     Tracing tracing = BrowserContextExtension.getOrCreateBrowserContext(context).tracing();
-    if (context.getExecutionException().isEmpty()) {
+    if (context.getExecutionException()
+        .filter(e -> !(e instanceof TestAbortedException))
+        .isEmpty()) {
       tracing.stop();
       return;
     }
     Path trace = TRACES.resolve(context.getRequiredTestClass().getName())
         .resolve(context.getRequiredTestMethod().getName())
         .resolve("trace.zip");
+    Files.createDirectories(trace.getParent());
     tracing.stop(new Tracing.StopOptions().setPath(trace));
     try (InputStream content = Files.newInputStream(trace)) {
       Allure.attachment("trace.zip", "application/zip", content,
