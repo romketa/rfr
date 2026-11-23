@@ -5,14 +5,15 @@ Rangiffler E2E tests: JUnit 6.1.3, Playwright Java 1.63, Allure 3, Spring `JdbcC
 ## Running
 
 ```bash
-./gradlew :rfr-e2e:e2e                                   # UI tests only (packages test.web and test.people)
+./gradlew :rfr-e2e:e2e                                   # UI tests only (packages test.web, test.people and test.travels)
 ./gradlew :rfr-e2e:test --tests '*RegistrationTest'
 ./gradlew :rfr-e2e:test --tests '*LoginTest'
 ./gradlew :rfr-e2e:allureReport                           # rfr-e2e/build/reports/allure-report/allureReport/index.html
 ./gradlew :rfr-e2e:allureServe                            # build the report and open it in a browser
+./gradlew :rfr-e2e:showTrace -Ptrace=build/traces/<class>/<method>/trace.zip   # open the trace of a failed test in TraceViewer
 ```
 
-Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; the tests use Chromium only.
+Playwright downloads its browsers (Chromium, Firefox, WebKit) itself on the first run; `rfr.browser` picks the one the tests use.
 
 Environment: MySQL `:3306`, `rfr-auth :9001`, `rfr-api :8081`, frontend `:3001` (see the root README).
 
@@ -30,14 +31,17 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
 | `rfr.schema.check` | `false` (the `e2e` task sets `true`: compare the database with the checked-out migrations) |
 | `rfr.commit` | `unknown` (Gradle passes the short hash of `HEAD`; shown in the Allure environment) |
+| `rfr.browser` | `chromium` (`firefox` and `webkit` are the other Playwright names) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
-| `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
+| `rfr.viewport.width` / `rfr.viewport.height` (also `rfr.viewportWidth` / `rfr.viewportHeight`, which win when both are set) | `1920` / `1080` (viewport of every browser context) |
+| `rfr.timeout.ms` | `5000` (actions such as click and fill, and Playwright assertions) |
+| `rfr.navigation.timeout.ms` | `30000` (navigation: Playwright's own default, kept explicit because `setDefaultTimeout` would otherwise cover navigation too) |
 | `rfr.auth.db.url` | `jdbc:mysql://localhost:3306/rangiffler-auth?serverTimezone=UTC` |
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
 | `rfr.db.user` / `rfr.db.password` | `root` / `secret` |
 
-The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default.
+The browser is always Chromium. Parallel execution and extension autodetection (`ServiceLoader`, see `DemoExtension` below) are configured in `src/test/resources/junit-platform.properties`; parallel execution is off by default.
 
 ## Architecture
 
@@ -46,7 +50,7 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `AllureEnvironmentExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserOptions`, `BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `AllureEnvironmentExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
 | `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`), row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`), `SchemaHistory` (applied `Migration`s of a schema), `Migration` (also parsed from a `V*.sql` file with the Flyway checksum) and `SchemaDrift` between the two; UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
@@ -56,8 +60,23 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
 
 ### Extensions
 
-- `@WebTest` (on a class) → `BrowserExtension`: a fresh Playwright browser per test, a `Page` method parameter,
-  a full-page screenshot attached to Allure when the test fails.
+- `@WebTest` (on a class) → `@UsePlaywright(BrowserOptions.class)` plus `BrowserExtension`. Playwright's own JUnit
+  extensions create the browser (one per thread, closed in `afterAll`) and a fresh `BrowserContext` and `Page` per test,
+  and resolve the `Page` method parameter. `BrowserOptions` (Playwright's `OptionsFactory`) pins the settings: explicit
+  headless mode (`rfr.headless`), a fixed viewport (`rfr.viewport.width` / `rfr.viewport.height`), the locale and
+  `data-test-id` as the attribute behind `getByTestId`. `BrowserExtension` adds what Playwright does not: it sets the
+  action timeout (`rfr.timeout.ms`) and the navigation timeout (`rfr.navigation.timeout.ms`) on the context (the
+  assertion timeout is set once in a static block, outside any test, so the Allure aspect does not report it as a step)
+  and attaches a full-page screenshot to Allure in `afterEach` when the test fails. The context is closed by Playwright
+  from `TestWatcher`, which runs after the Store has deleted the `@User` fixtures; the page is idle by then and sends
+  no requests, so the deleted profile is not recreated.
+- `@WebTest` also registers `PagesExtension`: in `beforeEach` it builds one Guice injector per test around the
+  Playwright `Page` and resolves page object parameters (`LandingPage landingPage`) from it, so every page and
+  component exists once per test and nothing calls `new` on them.
+- `@WebTest` also registers `TraceExtension`: it starts Playwright tracing of the context (screenshots, snapshots,
+  sources) in `beforeEach`; in `afterEach` a failed test gets
+  `build/traces/<test class>/<test method>/trace.zip`, attached to Allure as `trace.zip`, and a passed test drops
+  its trace. Open the file with `./gradlew :rfr-e2e:showTrace -Ptrace=<path>`.
 - `@User` (on a `TestUser` parameter) → `UserExtension` → `UserFixture`: every annotated parameter gets its own random user,
   inserted into `rangiffler-auth` before the test and deleted from both schemas afterwards, including the profile
   `rfr-api` creates on the first login.
@@ -113,7 +132,7 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
 
-Rules: `jupiter` has no SQL or locators; `data` has no JUnit; `test` has no locators or SQL; `ThreadLocal` is not used for test state — state lives in the extension Store.
+Rules: `jupiter` has no SQL or locators; `data` has no JUnit; `test` has no locators or SQL; the module's own extensions keep no test state in `ThreadLocal` — it lives in the extension Store (Playwright's bundled JUnit extensions use `ThreadLocal` internally; that is theirs to manage).
 
 ## Agent
 

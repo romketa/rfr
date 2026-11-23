@@ -4,10 +4,14 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.inject.Singleton;
 import io.student.rangiffler.config.Config;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@Singleton
 public final class RegisterPage {
 
   public static final String URL = Config.authUrl() + "/register";
@@ -19,9 +23,12 @@ public final class RegisterPage {
   private final Locator submitButton;
   private final Locator successMessage;
   private final Locator signInLink;
+  private final Provider<LandingPage> landingPage;
 
-  public RegisterPage(Page page) {
+  @Inject
+  public RegisterPage(Page page, Provider<LandingPage> landingPage) {
     this.page = page;
+    this.landingPage = landingPage;
     this.usernameInput = page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Username"));
     // The Thymeleaf labels wrap the "Show password" buttons, so both password fields lack a clean accessible name
     this.passwordInput = page.locator("#password");
@@ -54,7 +61,7 @@ public final class RegisterPage {
   @Step("Click Sign in")
   public LandingPage clickSignIn() {
     signInLink.click();
-    return new LandingPage(page);
+    return landingPage.get();
   }
 
   @Step("Check that registration succeeded")

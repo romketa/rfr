@@ -22,13 +22,13 @@ public final class AllureEnvironmentExtension implements SuiteExtension {
       "headless", "commit", "authSchemaVersion", "apiSchemaVersion");
 
   private static final String DEFAULT_RESULTS = "rfr-e2e/build/allure-results";
-  private static final String BROWSER = "chromium";
 
   @Override
   public void afterSuite(ExtensionContext context) {
     Path results = context.getConfigurationParameter(RESULTS_PARAMETER).map(Path::of)
         .orElseGet(() -> Config.repoRoot().resolve(DEFAULT_RESULTS));
-    List<String> values = List.of(Config.frontUrl(), Config.authUrl(), Config.apiUrl(), BROWSER,
+    List<String> values = List.of(Config.frontUrl(), Config.authUrl(), Config.apiUrl(),
+        Config.browser(),
         String.valueOf(Config.headless()), Config.commit(), version(Databases.AUTH),
         version(Databases.API));
     try {

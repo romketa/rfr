@@ -8,6 +8,7 @@ version = '1.0.0'
 def allureJavaVersion = '3.0.0'
 def allureReportVersion = '3.17.0'
 def aspectJVersion = '1.9.25.1'
+def guiceVersion = '7.0.0'
 def junitVersion = '6.1.3'
 def playwrightVersion = '1.63.0'
 def springJdbcVersion = '7.0.9'
@@ -30,6 +31,7 @@ dependencies {
     testImplementation "io.qameta.allure:allure-jupiter"
     testImplementation "io.qameta.allure:allure-playwright"
     testImplementation "com.microsoft.playwright:playwright:$playwrightVersion"
+    testImplementation "com.google.inject:guice:$guiceVersion"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
     testImplementation "org.junit.platform:junit-platform-testkit"
@@ -68,13 +70,14 @@ tasks.withType(Test).configureEach {
 
 tasks.register('e2e', Test) {
     group = 'verification'
-    description = 'Runs the UI tests from io.student.rangiffler.test.web and test.people'
+    description = 'Runs the UI tests from io.student.rangiffler.test.web, test.people and test.travels'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     systemProperty 'rfr.schema.check', System.getProperty('rfr.schema.check', 'true')
     filter {
         includeTestsMatching 'io.student.rangiffler.test.web.*'
         includeTestsMatching 'io.student.rangiffler.test.people.*'
+        includeTestsMatching 'io.student.rangiffler.test.travels.*'
     }
 }
 
@@ -84,4 +87,16 @@ tasks.register('installPlaywrightWithDeps', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.microsoft.playwright.CLI'
     args 'install', '--with-deps', 'chromium'
+}
+
+tasks.register('showTrace', JavaExec) {
+    group = 'verification'
+    description = 'Opens a Playwright trace in TraceViewer: -Ptrace=<path to trace.zip>'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.microsoft.playwright.CLI'
+    argumentProviders.add({
+        ['show-trace', providers.gradleProperty('trace').orElse(providers.provider {
+            throw new GradleException('Pass the trace file to showTrace with -Ptrace=<path to trace.zip>')
+        }).get()]
+    } as CommandLineArgumentProvider)
 }
