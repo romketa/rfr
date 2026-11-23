@@ -25,6 +25,11 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 |---|---|
 | `rfr.front.url` | `http://localhost:3001` |
 | `rfr.auth.url` | `http://localhost:9001` |
+| `rfr.api.url` | `http://localhost:8081` |
+| `rfr.stand.timeout` | `180` (seconds the UI tests wait for MySQL, `rfr-auth`, `rfr-api` and the frontend to answer) |
+| `rfr.stand.check` | `true` (`false` skips the wait for the stand) |
+| `rfr.schema.check` | `false` (the `e2e` task sets `true`: compare the database with the checked-out migrations) |
+| `rfr.commit` | `unknown` (Gradle passes the short hash of `HEAD`; shown in the Allure environment) |
 | `rfr.headless` | `true` |
 | `rfr.browser.locale` | `en-US` (pinned: `rfr-auth` localizes its messages by `Accept-Language`) |
 | `rfr.timeout.ms` | `10000` (actions, navigation and Playwright assertions) |
@@ -32,8 +37,7 @@ Gradle passes all `-Drfr.*` properties to the test JVM.
 | `rfr.api.db.url` | `jdbc:mysql://localhost:3306/rangiffler-api?serverTimezone=UTC` |
 | `rfr.db.user` / `rfr.db.password` | `root` / `secret` |
 
-The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default
-(`junit.jupiter.execution.parallel.enabled=false`).
+The browser is always Chromium. Parallel execution is configured in `src/test/resources/junit-platform.properties` and is off by default.
 
 ## Architecture
 
@@ -42,11 +46,11 @@ A single source set `src/test`, package `io.student.rangiffler`:
 | Package | Contents |
 |---|---|
 | `config` | `Config` — the single point for reading settings |
-| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
-| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`) and row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`); UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
+| `jupiter` | everything JUnit-related: `annotation` (`@WebTest`, `@User`, `@StaticUser`, `@ProbeTarget`, `@DemoTest`), `extension` (`BrowserExtension`, `UserExtension`, `UsersQueueExtension`, `AllureEnvironmentExtension`, `StandReadinessExtension`, `StandSchemaExtension`, `DemoExtension`), `probe` — EngineTestKit tests of the extensions; their scenarios are `@ProbeTarget` nested classes (`@Nested` plus the tag `engine-kit`, which the `test` task excludes), so they run only inside the probe |
+| `data` | test data and their owners: `TestUser`, `TestProfile`, `UserRequest` (builds a fixture from `@User`), `UserFixture` (interface), `SingleUserFixture` and its decorator `UserWithRelationsFixture` (one per non-zero counter, parameterised by `Relation`: `FRIEND`, `INCOME_INVITATION`, `OUTCOME_INVITATION`, which differ by `FriendshipStatus`, direction and the `TestUser.with...` method), `StaticUserFixture` over the JVM-wide `UsersQueue` of pre-created users, `UserRecords` (deletes a user from both schemas by username); `db` — `Databases`, `Jdbc` and immutable objects that own all SQL: single rows (`Row`: `AuthAccount`, `Profile`, `Friendship`), row sets (`Rows`: `Friendships` of a profile, optionally by `FriendshipStatus`), `SchemaHistory` (applied `Migration`s of a schema), `Migration` (also parsed from a `V*.sql` file with the Flyway checksum) and `SchemaDrift` between the two; UUIDs are converted with `UUID_TO_BIN`/`BIN_TO_UUID` in SQL |
 | `util` | stateless static utilities: `DataUtils` — random usernames/passwords |
 | `page` | Page Objects (`LandingPage`, `LoginPage`, `RegisterPage`, `MyTravelsPage`, `ProfilePage`); `component` — shared page parts (`Header`) |
-| `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup |
+| `test` | tests only: `web` — UI tests, `fake` — `SimpleTest` for checking the Allure setup and `ExtendWithPlacementsTest`, a demo of every place `@ExtendWith` can be declared (see below) |
 
 SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is loaded with `Jdbc.sql("auth/insert_user")`.
 
@@ -62,6 +66,49 @@ SQL for fixtures lives in `src/test/resources/sql/<schema>/<name>.sql` and is lo
   (any username/password, they need not exist in the stand) and fails with a clear message after a 30 s wait when the
   queue is empty; `close()` returns only the taken user and deletes nothing. The fixture goes into the Store before
   `create()`, so the user comes back even after a failed test.
+- `DemoExtension` is a teaching extension with no test data: it implements every `*Callback` of the test lifecycle
+  (`BeforeAll`, `TestInstancePreConstruct`, `BeforeEach`, `BeforeTestExecution`, `AfterTestExecution`, `AfterEach`,
+  `TestInstancePreDestroy`, `AfterAll`) and a `ParameterResolver` for `DemoExtension.DemoValue`. It numbers its
+  instances and prints every call to stdout as a tree: a header line per `ExtensionContext` (outer class, nested class,
+  test method) the first time it is seen, indented by its depth, and under it the callbacks as `DemoExtension#<n> <callback>`,
+  with `new DemoExtension#<n>` printed before the first call of an instance; each test logs `test body runs with` and
+  the `DemoValue`s it received at the same depth, and inside a test the same lines go to Allure as steps. `ExtendWithPlacementsTest` registers it once per `@Nested` scenario, in a different place each time: test
+  class, superclass, interface, composed annotation `@DemoTest`, test method, static and instance field, constructor
+  parameter, test method parameter, lifecycle method parameter. Every scenario has two tests, so the tree shows whether
+  one instance serves the whole class (every placement except the test method and its parameter, which get a new
+  instance per test and no `beforeAll`/`afterAll`). One scenario per placement is deliberate: the registry ignores an extension
+  type that is already registered higher in the hierarchy, so stacking the same extension on a class and its methods
+  registers it only once. Run with `./gradlew :rfr-e2e:test --tests '*ExtendWithPlacementsTest' -i` to see the trace.
+- `AllureEnvironmentExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) writes
+  `environment.properties` into the Allure results directory (`allure.results.directory`, by default
+  `rfr-e2e/build/allure-results`) in `afterSuite`: `frontUrl`, `authUrl`, `apiUrl`, `browser`, `headless`, `commit`
+  (the short hash Gradle passes as `rfr.commit`, the tests never run git) and the current Flyway version of each
+  schema (`authSchemaVersion`, `apiSchemaVersion`, `unavailable` when MySQL does not answer). It is the first line of
+  the services file: Jupiter stops at the first `BeforeAllCallback` that throws, so only an extension registered
+  before the failing one gets its `SuiteRun` and therefore its `afterSuite`. The probe `AllureEnvironmentExtensionTest`
+  points the directory at a temporary one through the configuration parameter `allure.results.directory`.
+- `StandReadinessExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) waits for the stand
+  before the first class tagged `ui` (`@WebTest` carries the tag), so both the `e2e` task and a single UI test started
+  from the IDE wait instead of failing on a Playwright timeout; classes without the tag never touch the stand, and
+  `rfr.stand.check=false` switches the wait off. It polls the same signs as `scripts/wait-for-stand.sh`: MySQL accepts
+  a TCP connection, `rfr-auth` answers `GET /.well-known/openid-configuration` with a status below 400, `rfr-api`
+  answers `POST /graphql` with any status (401 without a token is an answer), the frontend answers `GET /` with a
+  status below 400. Every request is bounded by 2 s and by what is left of `rfr.stand.timeout`, so the wait never
+  outlasts the timeout and nothing is asked after it; afterwards the error names the services that never answered
+  and the commands that start them (`docker compose up -d --wait`, `./gradlew runAll`, `npm run dev`). The probe
+  `StandReadinessExtensionTest` points the four addresses at fake servers through `rfr.stand.mysql`, `rfr.stand.auth`,
+  `rfr.stand.api` and `rfr.stand.front`. It is listed before `StandSchemaExtension` in the services file because the
+  schema check needs MySQL: Jupiter registers autodetected extensions in `ServiceLoader` order, which on the class path
+  is the order of the lines in the file, and `BeforeAllCallback`s run in registration order.
+- `StandSchemaExtension` (a `SuiteExtension`, registered globally through `META-INF/services`) is off unless
+  `rfr.schema.check=true`, which only the `e2e` task sets, so `:rfr-e2e:test` does not need MySQL for it. When on, it
+  runs once before every test of a run and compares `flyway_schema_history` of `rangiffler-auth` and `rangiffler-api` (version, description,
+  Flyway CRC32 checksum) with the migration files of the checked-out `rfr-auth` and `rfr-api`. Switching a backend
+  branch without recreating the database leaves the schema ahead of the code, which Flyway ignores by default
+  (`ignoreMigrationPatterns=*:future`); the extension fails the whole run instead, naming the migrations and the action:
+  check out the branch, restart the backend, or recreate the `mysql-volume`. The repository root is found by
+  `settings.gradle` (`rfr.repo.root` overrides it); the probe `StandSchemaExtensionTest` points it at a temporary copy
+  through the configuration parameter `rfr.migrations.root`.
 - A user registered through the UI is out of reach of the fixture: `RegistrationTest` deletes it in `@AfterEach`
   with `UserRecords.delete(username)`, which also runs when the scenario fails.
 - Generated usernames start with `rfr_`, so leftovers can be found with `username like 'rfr\_%'`.
