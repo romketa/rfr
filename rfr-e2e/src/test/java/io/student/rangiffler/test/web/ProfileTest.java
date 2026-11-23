@@ -13,8 +13,8 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 /**
- * Every saved value is checked after {@link ProfilePage#reload()}: the Apollo cache shows the mutation result
- * immediately, so only a fresh page load proves that rfr-api persisted it.
+ * Every saved value is checked after {@link ProfilePage#reload()}: the Apollo cache shows the
+ * mutation result immediately, so only a fresh page load proves that rfr-api persisted it.
  */
 @WebTest
 public class ProfileTest {
@@ -61,6 +61,15 @@ public class ProfileTest {
         .checkSuccessMessage()
         .reload()
         .checkAvatar(AVATAR);
+  }
+
+  @Test
+  void shouldShowProfileCreatedBeforeFirstLogin(
+      @User(firstname = "Ivan", surname = "Petrov", country = "ca") TestUser user, Page page) {
+    openProfile(user, page)
+        .checkFirstname("Ivan")
+        .checkSurname("Petrov")
+        .checkLocation("Canada");
   }
 
   @Test

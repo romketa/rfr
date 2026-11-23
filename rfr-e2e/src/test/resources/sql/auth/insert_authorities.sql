@@ -1,2 +1,2 @@
 insert into `authority` (user_id, authority)
-values (?, 'read'), (?, 'write')
+values (UUID_TO_BIN(?), 'read'), (UUID_TO_BIN(?), 'write')

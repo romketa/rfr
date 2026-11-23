@@ -16,6 +16,7 @@ bin/
 *.ipr
 *.iws
 out/
+amplicode.xml
 
 # VS Code
 .vscode/*
